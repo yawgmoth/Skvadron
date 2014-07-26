@@ -476,7 +476,7 @@ class CurseSpecial(AttackHandler, AHandlerComponent):
     name = "Curse"
     description = "Each attack curses the target to take 2.0 more damage from all subsequent attacks (before reductions, stacks with itself)"
     type = SPECIAL
-    icon = 209
+    icon = 219
     def __init__(self):
         self.priority = 10
     def __call__(self, atk, units):
@@ -563,6 +563,7 @@ def make_unit(owner, name, comps, index=None, mk_component=make_component):
         comp = mk_component(c)
         comp.apply(u)
         u.components.append(c)
+    u.components.sort(key=lambda c: components[c].type)
     if index is not None:
         u.index = index
     return u

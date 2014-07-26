@@ -1,0 +1,5 @@
+unit1 13 Curse WeakestTargetSelector PhysicalBurstAttack LuckyMagicalDefense 
+unit2 5 Curse RoundRobinTargetSelector PhysicalBurstAttack BasicMagicalDefense 
+unit3 20 Achilles WeakestTargetSelector GroupBuff LuckyMagicalDefense 
+unit4 4 DoubleHealth RandomTargetSelector BasicMagicalAttack SuperHealingDefense 
+unit5 25 Achilles RandomTargetSelector GroupBuff GroupShield 

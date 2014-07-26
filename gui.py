@@ -201,10 +201,10 @@ class GuiUnit(ScreenObject):
             self.selected = False
         if x > self.position[0] and x < self.position[0] + GRID_SIZE and y > self.position[1] and y < self.position[1] + GRID_SIZE:
             if btn == 1:
-                self.selected = True
-                self.sourced = True
                 for i,c in enumerate(self.unit.components):
                     print c
+                self.selected = True
+                self.sourced = True
             elif btn == 3:
                 self.targeted = True
     
@@ -323,7 +323,7 @@ class GuiGame(Scene):
                 enemy_units.extend(p.units)
         turndone = True
         if self.current_player in self.human_players:
-            if self.source and self.target_storage.target:
+            if self.source and self.target_storage.target and self.target_storage.target.health > 0:
                  self.players[self.current_player].make_attack(self.source, enemy_units)
                  #self.source = None
                  self.target_storage.target = None
@@ -375,7 +375,7 @@ class MainMenu(Scene):
 
     def do_start(self, arg):
         global scene
-        files = ["team3.skv", "team2.skv"]
+        files = ["team3.skv", "team4.skv"]
         players = []
         human_players = [0]
         target_storage = TargetStorage()
