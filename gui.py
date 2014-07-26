@@ -151,6 +151,12 @@ class GuiUnit(ScreenObject):
         self.xoff = xoff
         self.selected = False
     def render(self, screen):
+        if self.unit.health <= 0:
+            img, area = graphman.get_graphic_for_edge(18)
+            screen.blit(img, self.position, area)
+            return
+            #self.expired = True
+    
         if self.selected:
             pygame.draw.circle(screen, (0,255,0), (self.position[0] + GRID_SIZE/2,self.position[1]+GRID_SIZE/2), GRID_SIZE/2, 4)
             for i,c in enumerate(self.unit.components):
@@ -158,8 +164,7 @@ class GuiUnit(ScreenObject):
                 screen.blit(icon, (100+i*GRID_SIZE, 400), area)
         img, area = graphman.get_graphic_for_unit(self.index)
         screen.blit(img, self.position, area)
-        if self.unit.health <= 0:
-            self.expired = True
+        
         width = max(1,int(round((26*self.unit.health)/self.unit.max_health)))
         pygame.draw.rect(screen, (0,255,0), Rect(self.position[0]+3,self.position[1]+GRID_SIZE-4, width, 4), 0)
         if width < 26:
@@ -192,7 +197,8 @@ class GuiUnit(ScreenObject):
         self.indmg = (d + "- %.2f"%(dmg), type)
     def handle_click(self, where, btn):
         x,y = where
-        self.selected = False
+        if btn == 1:
+            self.selected = False
         if x > self.position[0] and x < self.position[0] + GRID_SIZE and y > self.position[1] and y < self.position[1] + GRID_SIZE:
             if btn == 1:
                 self.selected = True
@@ -319,7 +325,7 @@ class GuiGame(Scene):
         if self.current_player in self.human_players:
             if self.source and self.target_storage.target:
                  self.players[self.current_player].make_attack(self.source, enemy_units)
-                 self.source = None
+                 #self.source = None
                  self.target_storage.target = None
             else:
                  turndone = False
@@ -328,6 +334,8 @@ class GuiGame(Scene):
         if turndone:
             self.current_player += 1
             self.current_player %= len(self.players)
+            if self.source and ((self.current_player in self.human_players and self.source.owner != self.players[self.current_player]) or self.source.health <= 0):
+                self.source = None
     
     def start(self):
         self.current_player = 0
