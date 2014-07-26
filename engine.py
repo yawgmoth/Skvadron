@@ -106,15 +106,18 @@ class Player(object):
         self.units = []
         self.current_unit = -1
         self.name = name
+        self.enemy_units = []
     def make_turn(self, enemy_units):
         if self.units:
-            self.enemy_units = enemy_units
             self.current_unit += 1
             self.current_unit %= len(self.units)
-            atks = self.units[self.current_unit].get_attack(enemy_units)
-            for atk in atks:
-                if atk.target:
-                    atk.target.be_attacked(atk, self.units)
+            self.make_attack(self.units[self.current_unit], enemy_units)
+    def make_attack(self, unit, enemy_units):
+        self.enemy_units = enemy_units
+        atks = unit.get_attack(enemy_units)
+        for atk in atks:
+            if atk.target:
+                atk.target.be_attacked(atk, self.units)
     def finalize(self):
         for u in self.units:
             u.finalize()
@@ -182,7 +185,7 @@ class WeakestTargetSelector(AttackHandler,AHandlerComponent):
     name = "WeakestTargetSelector"
     description = "Always target the enemy unit with the lowest health"
     type = SELECTOR
-    icon = 200
+    icon = 210
     def __init__(self):
         self.priority = 0
     def __call__(self, atk, targets):
@@ -205,7 +208,7 @@ class RandomTargetSelector(AttackHandler,AHandlerComponent):
     name = "RandomTargetSelector"
     description = "Always target a random unit"
     type = SELECTOR
-    icon = 250
+    icon = 260
     def __init__(self):
         self.priority = 0
     def __call__(self, atk, targets):
@@ -243,7 +246,7 @@ class PhysicalBurstAttack(AttackHandler, AHandlerComponent):
     name = "PhysicalBurstAttack"
     description = "Does 4 bursts of 2,2,2 and 3 physical damage"
     type = ATTACK
-    icon = 190
+    icon = 200
     def __call__(self, atk, targets):
         atk.damage = 2.0
         atk.type = PHYSICAL
@@ -283,7 +286,7 @@ class BasicMagicalAttack(AttackHandler, AHandlerComponent):
     name = "BasicMagicalAttack"
     description = "Does 10 magical damage"
     type = ATTACK
-    icon = 180
+    icon = 190
     def __call__(self, atk, targets):
         atk.damage = 10.0
         atk.type = MAGICAL
@@ -399,7 +402,7 @@ class GroupBuff(AttackHandler, AHandlerComponent):
     name = "GroupBuff"
     description = "Adds 3 damage to all physical attacks of allies (before other modifiers), attacks for 5 physical damage (+3 bonus) itself"
     type = ATTACK
-    icon = 192
+    icon = 202
     def __call__(self, atk, units):
         atk.damage = 5
         atk.type = PHYSICAL
@@ -419,7 +422,7 @@ class DoubleHealthSpecial(Component):
     name = "DoubleHealth"
     description = "Doubles the unit's health"
     type = SPECIAL
-    icon = 207
+    icon = 217
     def apply(self, unit):
         unit.health *= 2
         unit.max_health *= 2
@@ -429,7 +432,7 @@ class AchillesSpecial(DefenseHandler, DHandlerComponent):
     name = "Achilles"
     description = "Unit starts with 1 health, but has a 97% chance to avoid all physical and magical damage"
     type = SPECIAL
-    icon = 201
+    icon = 211
     def apply(self, unit):
         unit.health = 1
         unit.add_defense_handler(self)
@@ -454,7 +457,7 @@ class DoubleDamageSpecial(AttackHandler, AHandlerComponent):
     name = "DoubleDamage"
     description = "Doubles any attack damage (after all other attack modifiers)"
     type = SPECIAL
-    icon = 193
+    icon = 203
     def __init__(self):
         self.priority = 100
     def __call__(self, atk, units):
@@ -494,7 +497,7 @@ class EnergyStorage(AttackHandler):
 @component 
 class EnergyContainerSpecial(AttackHandler, AHandlerComponent):
     name = "EnergyContainer"
-    description = "Each physical and magical attack's damage is stored in the container instead of being dealt to the target. If this unit is destroyed, the energy is released and dealt as magical damage to all enemy units"
+    description = "Each outgoing physical and magical attack's damage is stored in the container instead of being dealt to the target. If this unit is destroyed, the energy is released and dealt as magical damage to all enemy units"
     type = SPECIAL
     icon = 251
     def __init__(self):
@@ -551,17 +554,20 @@ class ConsoleLogDefense(DefenseHandler, DHandlerComponent):
             print atk.target.owner.name, atk.target.name, "takes", atk.damage, "(%.2f -> %.2f)"%(atk.target.health, atk.target.health - atk.damage), "by", atk.source.owner.name, atk.source.name
         return atk
 
-def make_unit(owner, name, comps, index=None):
+def make_component(name):
+    return components[name]()
+        
+def make_unit(owner, name, comps, index=None, mk_component=make_component):
     u = Unit(owner, name)
     for c in comps:
-        comp = components[c]()
+        comp = mk_component(c)
         comp.apply(u)
         u.components.append(c)
     if index is not None:
         u.index = index
     return u
     
-def make_player(fname, name):
+def make_player(fname, name, mk_component=make_component):
     p = Player(name)
     f = open(fname, "r")
     for l in f:
@@ -574,7 +580,7 @@ def make_player(fname, name):
                 comps = tokens[2:]
             except Exception:
                 pass
-            make_unit(p, tokens[0], comps, index=index)
+            make_unit(p, tokens[0], comps, index=index, mk_component=mk_component)
     p.finalize()
     return p
 
