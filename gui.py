@@ -63,6 +63,8 @@ class ScreenObject(object):
         self.targeted = False
     def handle_click(self, where, btn):
         pass
+    def handle_mouse(self, pos, rel):
+        pass
 
 class Background(ScreenObject):
     def render(self, screen):
@@ -150,6 +152,7 @@ class GuiUnit(ScreenObject):
         self.indmg = None
         self.xoff = xoff
         self.selected = False
+        self.show_hint = None
     def render(self, screen):
         if self.unit.health <= 0:
             img, area = graphman.get_graphic_for_edge(18)
@@ -159,10 +162,58 @@ class GuiUnit(ScreenObject):
     
         if self.selected:
             pygame.draw.circle(screen, (0,255,0), (self.position[0] + GRID_SIZE/2,self.position[1]+GRID_SIZE/2), GRID_SIZE/2, 4)
+            font = pygame.font.Font(None, 16)
+            img = font.render("%.2f/%.2d"%(self.unit.health, self.unit.max_health), True, (0,0,0))
+            screen.blit(img, (20,400))
             for i,c in enumerate(self.unit.components):
                 icon, area = graphman.get_graphic_for_ability(engine.components[c].icon)
                 screen.blit(icon, (100+i*GRID_SIZE, 400), area)
+                if self.show_hint:
+                    x,y = self.show_hint
+                    if x > 100+i*GRID_SIZE and x < 100 + (i+1)*GRID_SIZE and \
+                       y > 400 and y < 400 + GRID_SIZE:
+                        hx = 100
+                        hy = 363
+                        font = pygame.font.Font(None, 16)
+                        img = font.render(engine.components[c].name, True, (0,0,0))
+                        screen.blit(img, (hx,hy))
+                        hy = 373
+                        img = font.render(engine.components[c].description, True, (0,0,0))
+                        if img.get_width() > 400:
+                            desc = engine.components[c].description.split()
+                            img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                            screen.blit(img, (hx,hy))
+                            img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                            hy = 383
+                        screen.blit(img, (hx,hy))
+            for i,b in enumerate(self.unit.buffs):
+                icon, area = graphman.get_graphic_for_ability(b.icon)
+                screen.blit(icon, (300+i*GRID_SIZE, 400), area)
+                if b.count:
+                    font = pygame.font.Font(None, 16)
+                    img = font.render(str(int(round(b.count))), True, (255,0,0))
+                    screen.blit(img, (300+(i+1)*GRID_SIZE-img.get_width(),400+GRID_SIZE - img.get_height()))
+                if self.show_hint:
+                    x,y = self.show_hint
+                    if x > 300+i*GRID_SIZE and x < 300 + (i+1)*GRID_SIZE and \
+                       y > 400 and y < 400 + GRID_SIZE:
+                        hx = 300
+                        hy = 363
+                        font = pygame.font.Font(None, 16)
+                        img = font.render(b.name, True, (0,0,0))
+                        screen.blit(img, (hx,hy))
+                        hy = 373
+                        img = font.render(b.description, True, (0,0,0))
+                        if img.get_width() > 400:
+                            desc = b.description.split()
+                            img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                            screen.blit(img, (hx,hy))
+                            img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                            hy = 383
+                        screen.blit(img, (hx,hy))
+                        
         img, area = graphman.get_graphic_for_unit(self.index)
+        
         screen.blit(img, self.position, area)
         
         width = max(1,int(round((26*self.unit.health)/self.unit.max_health)))
@@ -207,6 +258,8 @@ class GuiUnit(ScreenObject):
                 self.sourced = True
             elif btn == 3:
                 self.targeted = True
+    def handle_mouse(self, pos, rel):
+        self.show_hint = pos
     
 
 class GuiHandler:
@@ -252,6 +305,9 @@ class Scene(object):
     def handle_click(self, where, button):
         for obj in self.guihandler.objects:
             obj.handle_click(where, button)
+    def handle_mouse(self, pos, rel):
+        for obj in self.guihandler.objects:
+            obj.handle_mouse(pos, rel)
                 
 @engine.component
 class HumanTargetSelector(engine.AttackHandler,engine.AHandlerComponent):
@@ -273,6 +329,17 @@ class TargetStorage(object):
     def __init__(self):
         self.target = None
 
+class UnitBuilder(Scene):
+    def __init__(self, guihandler):
+        self.guihandler = guihandler
+        self.guihandler.objects.append(MenuBackground())
+        self.units = []
+        if os.path.exists('units.list'):
+            f = file('units.list')
+            for l in f:
+                self.units.append(l)
+            f.close()
+    
         
 class GuiGame(Scene):
     def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage()):
@@ -285,6 +352,7 @@ class GuiGame(Scene):
         self.target_storage = target_storage
         self.current_player = 0
         self.human_players = human_players
+        self.end_reached = False
         
     def do_update(self):
         for obj in self.guihandler.objects:
@@ -298,13 +366,22 @@ class GuiGame(Scene):
             self.last_turn = time.time()
             self.turn()
             if self.game_ended():
+                if not self.end_reached:
+                    self.guihandler.objects.append(Button(position=(150,100), label="Main Menu", fn=self.do_mainmenu))
+                self.end_reached = True
+                
                 if not self.get_winner():
                     self.guihandler.objects.append(Text("Game ended in a draw", (25, 25)))
                 else:
                     self.guihandler.objects.append(Text(self.get_winner().name + " has won the game", (25, 25)))
         font = pygame.font.Font(None, 16)
         img = font.render("Current delay: %.2f seconds"%(speed), True, (255,0,0))
-        self.guihandler.screen.blit(img, (10,10))    
+        self.guihandler.screen.blit(img, (10,10))
+
+    def do_mainmenu(self, arg):
+        global scene
+        self.guihandler.clear()
+        scene = MainMenu(self.guihandler)
         
     def game_ended(self):
         has_units = 0
@@ -371,11 +448,19 @@ class MainMenu(Scene):
         self.guihandler = guihandler
         self.guihandler.objects.append(MenuBackground())
         self.guihandler.objects.append(Button(position=(100,100), label="Start", fn=self.do_start))
+        self.guihandler.objects.append(Button(position=(100,150), label="Unit Builder", fn=self.do_build_unit))
         self.guihandler.objects.append(Button(position=(100,200), label="Quit", fn=self.do_quit))
+        
+    def do_build_unit(self, arg):
+        global scene
+        self.guihandler.clear()
+        scene = UnitBuilder(self.guihandler)
 
     def do_start(self, arg):
         global scene
         files = ["team3.skv", "team4.skv"]
+        if len(sys.argv) > 2:
+            files = sys.argv[1:]
         players = []
         human_players = [0]
         target_storage = TargetStorage()
@@ -428,7 +513,10 @@ def main():
                 #emit(Event(tags=KEY_UP, key=event.key))
             elif event.type == MOUSEBUTTONDOWN:
                 scene.handle_click(event.pos, event.button)
-                #emit(Event(tags=MOUSE_DOWN, where=event.pos, button=event.button))
+                #emit(Event(tags=MOUSE_DOWN, where=event.pos, button=event.button))#
+            elif event.type == MOUSEMOTION:
+                scene.handle_mouse(event.pos, event.rel)
+                
         scene.update() 
         pygame.display.flip()
         

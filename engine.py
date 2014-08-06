@@ -40,6 +40,10 @@ class DHandlerComponent(object):
 class DamageHandler(object):
     def __call__(self, atk):
         pass
+        
+class Buff(object):
+    def __init__(self, count=0):
+        self.count = count
     
 class Attack(object):
     def __init__(self, source, damage=0, type=PHYSICAL):
@@ -71,6 +75,7 @@ class Unit(object):
         self.name = name
         self.owner.units.append(self)
         self.components = []
+        self.buffs = []
     def get_attack(self, targets):
         atks = [Attack(self)]
         for h in self.attack_handlers:
@@ -93,6 +98,14 @@ class Unit(object):
     def add_defense_handler(self, handler):
         self.defense_handlers.append(handler)
         self.defense_handlers.sort(key=lambda h: h.priority)
+    def add_buff(self, buff):
+        found = False
+        for b in self.buffs:
+            if b.name == buff.name and b.count:
+                b.count += buff.count
+                found = True
+        if not found:
+            self.buffs.append(buff)
     def die(self):
         self.owner.units.remove(self)
         for h in self.attack_handlers + self.defense_handlers:
@@ -254,6 +267,14 @@ class PhysicalBurstAttack(AttackHandler, AHandlerComponent):
         atk2.damage = 3.0
         return [atk,atk.clone(),atk.clone(),atk2]
         
+class ImprovingPhysicalAttackBuff(Buff):
+    name = "ImprovingPhysicalAttack"
+    description = "Unit deals damage equal to number of stacks"
+    icon = 370
+    def __init__(self, count=2):
+        self.count = count
+        if self.count == 2:
+            self.count = 4
         
 @component
 class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
@@ -266,7 +287,9 @@ class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
         self.dmg = 2.0
     def __call__(self, atk, targets):
         atk.damage = self.dmg
-        self.dmg *= 2
+        dmg = self.dmg
+        self.dmg *= 2.0
+        atk.source.add_buff(ImprovingPhysicalAttackBuff(self.dmg - dmg))
         atk.type = PHYSICAL
         return atk
         
@@ -464,24 +487,32 @@ class DoubleDamageSpecial(AttackHandler, AHandlerComponent):
         atk.damage *= 2
         return atk
         
+class CurseBuff(Buff): 
+    name = "Cursed"
+    description = "Unit takes 1.0 more damage per stack"
+    icon = 219
+    def __init__(self):
+        self.count = 1
+        
 class Curse(DefenseHandler):
     def __init__(self):
         self.priority = -10
     def __call__(self, atk, units):
-        atk.damage += 2.0
+        atk.damage += 1.0
         return atk
         
 @component 
 class CurseSpecial(AttackHandler, AHandlerComponent):
     name = "Curse"
-    description = "Each attack curses the target to take 2.0 more damage from all subsequent attacks (before reductions, stacks with itself)"
+    description = "Each attack curses the target to take 1.0 more damage from all subsequent attacks (before reductions, stacks with itself)"
     type = SPECIAL
     icon = 219
     def __init__(self):
         self.priority = 10
     def __call__(self, atk, units):
         atk.target.add_defense_handler(Curse())
-        atk.damage -= 2.0
+        atk.target.add_buff(CurseBuff())
+        atk.damage -= 1.0
         return atk
         
 class EnergyStorage(AttackHandler):
@@ -491,8 +522,14 @@ class EnergyStorage(AttackHandler):
     def __call__(self, atk, targets):
         if atk.type in [PHYSICAL, MAGICAL]:
             self.value += atk.damage
+            atk.source.add_buff(EnergyContainerBuff(atk.damage))
             atk.damage = 0
         return atk
+        
+class EnergyContainerBuff(Buff):
+    name = "EnergyContainer"
+    description = "When this unit is destroyed, it deals damage equal to the amount stored to all enemy units"
+    icon = 251
         
 @component 
 class EnergyContainerSpecial(AttackHandler, AHandlerComponent):
@@ -502,13 +539,15 @@ class EnergyContainerSpecial(AttackHandler, AHandlerComponent):
     icon = 251
     def __init__(self):
         self.priority = 1000
+        self.exploded = False
     def apply(self, unit):
         unit.add_defense_handler(self)
         self.storage = EnergyStorage()
         unit.add_attack_handler(self.storage)
         self.unit = unit
     def __call__(self, atk, units):
-        if atk.damage > self.unit.health and self.unit.health > 0:
+        if atk.damage > self.unit.health and self.unit.health > 0 and not self.exploded:
+            self.exploded = True
             for u in self.unit.owner.enemy_units:
                 atk1 = Attack(self.unit, self.storage.value, MAGICAL)
                 atk1.target = u
@@ -525,7 +564,7 @@ class ThornsSpecial(DefenseHandler, DHandlerComponent):
         self.priority = 1000
     def __call__(self, atk, units):
         if atk.type == PHYSICAL and atk.target:
-            atk1 = Attack(self.unit, 0.2*atk.damage, PHYSICAL)
+            atk1 = Attack(self.unit, 0.2*atk.damage, MAGICAL)
             atk1.target = atk.source
             atk.source.be_attacked(atk1, None)
         return atk
@@ -585,19 +624,22 @@ def make_player(fname, name, mk_component=make_component):
     p.finalize()
     return p
 
+def game(teams):
+    players = []
+    for i, fname in enumerate(teams):
+        p = make_player(fname, "player %d"%(i+1))
+        players.append(p)
+        
+    g = Game(players)
+    winner = g.run()
+    return winner
 
 def main(files):
     winrates = {}
     if not files:
         files = ["team1.skv", "team1.skv"]
     for i in xrange(1000):
-        players = []
-        for i, fname in enumerate(files):
-            p = make_player(fname, "player %d"%(i+1))
-            players.append(p)
-            
-        g = Game(players)
-        winner = g.run()
+        winner = game(files)
         if winner not in winrates:
             winrates[winner] = 0
         winrates[winner] += 1
