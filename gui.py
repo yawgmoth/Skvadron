@@ -203,9 +203,10 @@ class GuiUnit(ScreenObject):
                         img = font.render(b.name, True, (0,0,0))
                         screen.blit(img, (hx,hy))
                         hy = 373
-                        img = font.render(b.description, True, (0,0,0))
+                        desc = b.description.replace("%count", str(b.count))
+                        img = font.render(desc, True, (0,0,0))
                         if img.get_width() > 400:
-                            desc = b.description.split()
+                            desc = desc.split()
                             img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
                             screen.blit(img, (hx,hy))
                             img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
@@ -252,8 +253,6 @@ class GuiUnit(ScreenObject):
             self.selected = False
         if x > self.position[0] and x < self.position[0] + GRID_SIZE and y > self.position[1] and y < self.position[1] + GRID_SIZE:
             if btn == 1:
-                for i,c in enumerate(self.unit.components):
-                    print c
                 self.selected = True
                 self.sourced = True
             elif btn == 3:

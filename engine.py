@@ -269,7 +269,7 @@ class PhysicalBurstAttack(AttackHandler, AHandlerComponent):
         
 class ImprovingPhysicalAttackBuff(Buff):
     name = "ImprovingPhysicalAttack"
-    description = "Unit deals damage equal to number of stacks"
+    description = "Unit deals %count damage (increases with stacks)"
     icon = 370
     def __init__(self, count=2):
         self.count = count
@@ -489,7 +489,7 @@ class DoubleDamageSpecial(AttackHandler, AHandlerComponent):
         
 class CurseBuff(Buff): 
     name = "Cursed"
-    description = "Unit takes 1.0 more damage per stack"
+    description = "Unit takes %count more damage from each attack"
     icon = 219
     def __init__(self):
         self.count = 1
