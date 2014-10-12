@@ -332,16 +332,22 @@ class UnitBuilder(Scene):
     def __init__(self, guihandler):
         self.guihandler = guihandler
         self.guihandler.objects.append(MenuBackground())
-        self.units = []
-        if os.path.exists('units.list'):
-            f = file('units.list')
-            for l in f:
-                self.units.append(l)
-            f.close()
+        
     
+def get_drop(chances):
+    total = sum(map(lambda item: int(item[1]), chances))
+    r = random.randint(0, total-1)
+    at = 0
+    for i in chances:
+        if at <= r and at + int(i[1]) > r:
+            return i[0]
+        at += int(i[1])
+    print "randomed", r, "out of", total
+    print chances
+    return chances[-1][0]
         
 class GuiGame(Scene):
-    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage()):
+    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage(), lvl=None):
         self.guihandler = guihandler
         self.players = players
         self.guihandler.objects.append(Background())
@@ -352,6 +358,7 @@ class GuiGame(Scene):
         self.current_player = 0
         self.human_players = human_players
         self.end_reached = False
+        self.lvl = lvl
         
     def do_update(self):
         for obj in self.guihandler.objects:
@@ -366,7 +373,7 @@ class GuiGame(Scene):
             self.turn()
             if self.game_ended():
                 if not self.end_reached:
-                    self.guihandler.objects.append(Button(position=(150,100), label="Main Menu", fn=self.do_mainmenu))
+                    self.guihandler.objects.append(Button(position=(150,100), label="Continue", fn=self.do_continue))
                 self.end_reached = True
                 
                 if not self.get_winner():
@@ -377,10 +384,22 @@ class GuiGame(Scene):
         img = font.render("Current delay: %.2f seconds"%(speed), True, (255,0,0))
         self.guihandler.screen.blit(img, (10,10))
 
-    def do_mainmenu(self, arg):
-        global scene
+    def do_continue(self, arg):
+        global scene, player
         self.guihandler.clear()
-        scene = MainMenu(self.guihandler)
+        if self.lvl:
+            if self.get_winner() and self.get_winner().is_human:
+                del player.available_levels[player.available_levels.index(self.lvl)]
+                player.available_levels.extend(map(Level, self.lvl.next))
+                for d in self.lvl.drops:
+                    drop = get_drop(d)
+                    if drop not in player.inventory:
+                        player.inventory[drop] = 0
+                    player.inventory[drop] += 1
+                print player.inventory
+            scene = LevelSelector(self.guihandler)
+        else:
+            scene = MainMenu(self.guihandler)
         
     def game_ended(self):
         has_units = 0
@@ -440,24 +459,48 @@ class GuiGame(Scene):
             if p.units:
                 winner = p
         return winner
+    
+class Level:
+    def __init__(self, fname):
+        f = open(fname, 'r')
+        self.drops = []
+        self.next = []
+        self.opponent = ""
+        self.name = "Level"
+        for l in f:
+            if l.startswith('opponent'):
+                 self.opponent = l.split()[1]
+            elif l.startswith('drop'):
+                 self.drops.append(map(lambda s: s.strip().split(), l.split(None, 1)[1].split(',')))
+            elif l.startswith('next'):
+                 self.next.append(l.split()[1])
+            elif l.startswith('name'):
+                 self.name = l.split(None, 1)[1]
+    
+class Player:
+    def __init__(self):
+        self.available_levels = [Level("levels/level1.lvl")]
+        self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense'],
+                     ["unit2", 8, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicMagicalDefense'],
+                     ["unit3", 11, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicPhysicalDefense'],
+                     ["unit4", 2, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicPhysicalDefense'],
+                     ["unit5", 14, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense']
+                     ]
+        self.inventory = {'BasicPhysicalAttack': -1, 'BasicMagicalAttack': -1,
+                          'BasicPhysicalDefense': -1, 'BasicMagicalDefense': -1}
         
         
-class MainMenu(Scene):
+class LevelSelector(Scene):
     def __init__(self, guihandler):
         self.guihandler = guihandler
+        global player
         self.guihandler.objects.append(MenuBackground())
-        self.guihandler.objects.append(Button(position=(100,100), label="Start", fn=self.do_start))
-        self.guihandler.objects.append(Button(position=(100,150), label="Unit Builder", fn=self.do_build_unit))
-        self.guihandler.objects.append(Button(position=(100,200), label="Quit", fn=self.do_quit))
+        for i, lvl in enumerate(player.available_levels):
+             self.guihandler.objects.append(Button(position=(100,100+50*i), label=lvl.name, fn=self.start_level, arg=lvl))
         
-    def do_build_unit(self, arg):
-        global scene
-        self.guihandler.clear()
-        scene = UnitBuilder(self.guihandler)
-
-    def do_start(self, arg):
-        global scene
-        files = ["team3.skv", "team4.skv"]
+    def start_level(self, lvl):
+        global scene, player
+        files = ["", lvl.opponent]
         if len(sys.argv) > 2:
             files = sys.argv[1:]
         players = []
@@ -471,7 +514,55 @@ class MainMenu(Scene):
                 return c()
             return make_gui_component
         for i,f in enumerate(files):
-            players.append(engine.make_player(f, "player %d"%(i+1), mk_component=gui_component_maker(i)))
+            if i in human_players:
+                players.append(engine.make_player_from_team(player.team, "You", mk_component=gui_component_maker(i), is_human=True))
+            else:
+                players.append(engine.make_player(f, "Opponent"))
+        self.guihandler.clear()
+        scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, lvl=lvl)
+        scene.start()
+        
+    def do_quit(self, arg):
+        pygame.quit()
+        sys.exit(0)
+        
+class MainMenu(Scene):
+    def __init__(self, guihandler):
+        self.guihandler = guihandler
+        self.guihandler.objects.append(MenuBackground())
+        self.guihandler.objects.append(Button(position=(100,100), label="Start", fn=self.do_start))
+        self.guihandler.objects.append(Button(position=(100,150), label="Skirmish", fn=self.do_skirmish))
+        self.guihandler.objects.append(Button(position=(100,200), label="Quit", fn=self.do_quit))
+        
+    def do_build_unit(self, arg):
+        global scene
+        self.guihandler.clear()
+        scene = UnitBuilder(self.guihandler)
+
+    def do_start(self, arg):
+        global scene, player
+        player = Player()
+        self.guihandler.clear()
+        scene = LevelSelector(self.guihandler)
+        #scene.start()
+        
+    def do_skirmish(self, arg):
+        global scene
+        files = ["team3.skv", "teams/team%d.skv"%(random.randint(0,60))]
+        if len(sys.argv) > 2:
+            files = sys.argv[1:]
+        players = []
+        human_players = [0]
+        target_storage = TargetStorage()
+        def gui_component_maker(i):
+            def make_gui_component(name):
+                c = engine.components[name]
+                if c.type == engine.SELECTOR and i in human_players:
+                    return HumanTargetSelector(target_storage)
+                return c()
+            return make_gui_component
+        for i,f in enumerate(files):
+            players.append(engine.make_player(f, "player %d"%(i+1), mk_component=gui_component_maker(i), is_human=i in human_players))
         self.guihandler.clear()
         scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage)
         scene.start()
@@ -483,6 +574,7 @@ class MainMenu(Scene):
         
 
 scene = None
+player = None
         
 def main():
     global speed, scene

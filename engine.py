@@ -115,11 +115,12 @@ class Unit(object):
             h.finalize()
         
 class Player(object):
-    def __init__(self, name):
+    def __init__(self, name, is_human):
         self.units = []
         self.current_unit = -1
         self.name = name
         self.enemy_units = []
+        self.is_human = is_human
     def make_turn(self, enemy_units):
         if self.units:
             self.current_unit += 1
@@ -607,8 +608,8 @@ def make_unit(owner, name, comps, index=None, mk_component=make_component):
         u.index = index
     return u
     
-def make_player(fname, name, mk_component=make_component):
-    p = Player(name)
+def make_player(fname, name, mk_component=make_component, is_human=False):
+    p = Player(name, is_human)
     f = open(fname, "r")
     for l in f:
         if l.strip():
@@ -621,6 +622,20 @@ def make_player(fname, name, mk_component=make_component):
             except Exception:
                 pass
             make_unit(p, tokens[0], comps, index=index, mk_component=mk_component)
+    p.finalize()
+    return p
+    
+def make_player_from_team(team, name, mk_component=make_component, is_human=False):
+    p = Player(name, is_human)
+    for tokens in team:
+        index = None
+        comps = tokens[1:]
+        try:
+            index = int(tokens[1])
+            comps = tokens[2:]
+        except Exception:
+            pass
+        make_unit(p, tokens[0], comps, index=index, mk_component=mk_component)
     p.finalize()
     return p
 
