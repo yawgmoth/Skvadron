@@ -136,7 +136,7 @@ class Button(ScreenObject):
         self.text.render(screen)
     def handle_click(self, where, btn):
         x,y = where
-        if x > self.position[0] and x < self.position[1] + self.size[0] and y > self.position[1] and y < self.position[1] + self.size[1]:
+        if x > self.position[0] and x < self.position[0] + self.size[0] and y > self.position[1] and y < self.position[1] + self.size[1]:
             self.fn(self.arg)
         
         
@@ -587,6 +587,7 @@ class Level:
         self.next = []
         self.opponent = ""
         self.name = "Level"
+        self.fname = fname
         for l in f:
             if l.startswith('opponent'):
                  self.opponent = l.split()[1]
@@ -598,16 +599,42 @@ class Level:
                  self.name = l.split(None, 1)[1]
     
 class Player:
-    def __init__(self):
-        self.available_levels = [Level("levels/level1.lvl")]
-        self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense'],
-                     ["unit2", 8, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicMagicalDefense'],
-                     ["unit3", 11, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicPhysicalDefense'],
-                     ["unit4", 2, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicPhysicalDefense'],
-                     ["unit5", 14, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense']
-                     ]
-        self.inventory = {'BasicPhysicalAttack': -1, 'BasicMagicalAttack': -1,
+    def __init__(self, fname=""):
+        self.fname = fname
+        if fname and os.path.exists(fname):
+            f = file(fname, "r")
+            self.team = []
+            self.inventory = {}
+            for l in f:
+                what, line = l.split(None, 1)
+                if what == "unit:":
+                    self.team.append(line.strip().split(","))
+                elif what == "levels:":
+                    self.available_levels = map(Level, line.strip().split(","))
+                elif what == "inventory:":
+                    cnt, item = line.strip().split(None, 1)
+                    self.inventory[item] = int(cnt)
+            f.close()
+        else:
+            self.available_levels = [Level("levels/level1.lvl")]
+            self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense'],
+                         ["unit2", 8, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicMagicalDefense'],
+                         ["unit3", 11, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicPhysicalDefense'],
+                         ["unit4", 2, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicPhysicalDefense'],
+                         ["unit5", 14, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense']
+                         ]
+            self.inventory = {'BasicPhysicalAttack': -1, 'BasicMagicalAttack': -1,
                           'BasicPhysicalDefense': -1, 'BasicMagicalDefense': -1}
+    def save(self):
+        f = file(self.fname, "w")
+        levels = ",".join(map(lambda l: l.fname, self.available_levels))
+        print >> f, "levels:", levels
+        for t in self.team:
+            print >> f, "unit:", ",".join(map(str, t))
+        for i in self.inventory:
+            print >> f, "inventory:", self.inventory[i], i
+        f.close()
+        
         
         
 class LevelSelector(Scene):
@@ -649,6 +676,9 @@ class LevelSelector(Scene):
         scene = UnitBuilder(self.guihandler)
 
     def do_quit(self, arg):
+        global player
+        if player:
+            player.save()
         pygame.quit()
         sys.exit(0)
         
@@ -663,7 +693,7 @@ class MainMenu(Scene):
 
     def do_start(self, arg):
         global scene, player
-        player = Player()
+        player = Player("player.ply")
         self.guihandler.clear()
         scene = LevelSelector(self.guihandler)
         #scene.start()
@@ -699,7 +729,7 @@ scene = None
 player = None
         
 def main():
-    global speed, scene
+    global speed, scene, player
     pygame.init()
     screen = pygame.display.set_mode((640, 480))
     pygame.display.set_caption('Skvadron')
@@ -713,8 +743,12 @@ def main():
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == QUIT:
+                if player:
+                    player.save()
                 return
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                if player:
+                    player.save()
                 return
             elif event.type == KEYDOWN:
                 if event.key == K_q:
