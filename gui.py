@@ -165,12 +165,17 @@ class GuiUnit(ScreenObject):
             font = pygame.font.Font(None, 16)
             img = font.render("%.2f/%.2d"%(self.unit.health, self.unit.max_health), True, (0,0,0))
             screen.blit(img, (20,400))
+            offsetx = 0
+            if self.unit.owner.is_human:
+                offsetx = -GRID_SIZE
             for i,c in enumerate(self.unit.components):
+                if engine.components[c].type == engine.SELECTOR and self.unit.owner.is_human:
+                    continue
                 icon, area = graphman.get_graphic_for_ability(engine.components[c].icon)
-                screen.blit(icon, (100+i*GRID_SIZE, 400), area)
+                screen.blit(icon, (100+i*GRID_SIZE+offsetx, 400), area)
                 if self.show_hint:
                     x,y = self.show_hint
-                    if x > 100+i*GRID_SIZE and x < 100 + (i+1)*GRID_SIZE and \
+                    if x > 100+i*GRID_SIZE+offsetx and x < 100 + (i+1)*GRID_SIZE+offsetx and \
                        y > 400 and y < 400 + GRID_SIZE:
                         hx = 100
                         hy = 363
@@ -327,12 +332,127 @@ class HumanTargetSelector(engine.AttackHandler,engine.AHandlerComponent):
 class TargetStorage(object):
     def __init__(self):
         self.target = None
+        
+class UnitEditor(ScreenObject):
+    def __init__(self, parent, unit, position):
+        self.parent = parent
+        self.unit = unit
+        self.position = position
+        self.components = {}
+        self.expired = False
+        for c in self.unit[2:]:
+            self.components[engine.components[c].type] = c
+    def render(self, screen):
+        if self.parent.selected_unit == self:
+            pygame.draw.circle(screen, (0,255,0), (self.position[0] + GRID_SIZE/2,self.position[1]+GRID_SIZE/2), GRID_SIZE/2, 4)
+        img, area = graphman.get_graphic_for_unit(int(self.unit[1]))
+        screen.blit(img, self.position, area)
+        at = GRID_SIZE
+        for t in [engine.ATTACK, engine.DEFENSE, engine.SPECIAL]:
+            if t in self.components:
+                img, area = graphman.get_graphic_for_ability(engine.components[self.components[t]].icon)
+                screen.blit(img, (self.position[0], self.position[1]+at), area)
+                at += GRID_SIZE
+        return
+    def handle_click(self,where, btn):
+        x,y = where
+        if x > self.position[0] and x < self.position[0] + GRID_SIZE and \
+           y > self.position[1] and y < self.position[1] + GRID_SIZE:
+               self.parent.selected_unit = self
+        if x > self.position[0] and x < self.position[0] + GRID_SIZE and \
+           y > self.position[1] + GRID_SIZE and y < self.position[1] + (len(self.components) +1)*GRID_SIZE:
+            at = (y - (self.position[1] + GRID_SIZE))/GRID_SIZE
+            for t in [engine.ATTACK, engine.DEFENSE, engine.SPECIAL]:
+                if t in self.components and at == 0:
+                    self.parent.return_component(self.components[t])
+                    del self.components[t]
+                    break
+                elif t in self.components:
+                    at -= 1
+    def make_unit(self):
+        result = self.unit[:2]
+        for t in self.components:
+            result.append(self.components[t])
+        return result
+
+class InventoryEditor(ScreenObject):
+    def __init__(self, parent, inventory, position):
+        self.parent = parent
+        self.inventory = inventory
+        self.position = position
+        self.expired = False
+    def render(self, screen):
+        for i,t in enumerate([engine.ATTACK, engine.DEFENSE, engine.SPECIAL]):
+            comps = []
+            for c in self.inventory:
+                if engine.components[c].type == t:
+                    comps.append((c,self.inventory[c]))
+            comps.sort(key=lambda (name,cnt): name)
+            for j,t in enumerate(comps):
+                img,area = graphman.get_graphic_for_ability(engine.components[t[0]].icon)
+                screen.blit(img, (self.position[0]+j*GRID_SIZE,self.position[1] + i*50), area)
+                if t[1] >= 0:
+                    font = pygame.font.Font(None, 16)
+                    img = font.render("%d"%(t[1]), True, (255,0,0))
+                    screen.blit(img, (self.position[0]+j*GRID_SIZE,self.position[1] + i*50))
+    def handle_click(self, where, btn):
+        x, y = where
+        if not self.parent.selected_unit:
+            return
+        if x > self.position[0] and y > self.position[1] and y < self.position[1] + 3*50:
+            index = (x-self.position[0])/GRID_SIZE
+            type = [engine.ATTACK, engine.DEFENSE, engine.SPECIAL][(y-self.position[1])/50]
+            comps = []
+            for c in self.inventory:
+                if engine.components[c].type == type:
+                    comps.append((c,self.inventory[c]))
+            comps.sort(key=lambda (name,cnt): name)
+            if index < len(comps):
+                comp = comps[index][0]
+                if self.inventory[comp] != 0:
+                    if type in self.parent.selected_unit.components:
+                        self.parent.return_component(self.parent.selected_unit.components[type])
+                    self.parent.selected_unit.components[type] = comp
+                    if self.inventory[comp] > 0:
+                        self.inventory[comp] -= 1
+                
+                
 
 class UnitBuilder(Scene):
     def __init__(self, guihandler):
         self.guihandler = guihandler
         self.guihandler.objects.append(MenuBackground())
-        
+        global player
+        self.effective_inventory = {}
+        for i in player.inventory:
+            self.effective_inventory[i] = player.inventory[i]
+        self.selected_unit = None
+        self.uniteds = []
+        for i, u in enumerate(player.team):
+            ue = UnitEditor(self, u, (100+i*50, 230))
+            self.guihandler.objects.append(ue)
+            self.uniteds.append(ue)
+        self.guihandler.objects.append(InventoryEditor(self, self.effective_inventory, (100,50)))
+        self.guihandler.objects.append(Button(position=(20,50), label='Save', fn=self.do_save))
+        self.guihandler.objects.append(Button(position=(20,100), label='Cancel', fn=self.do_cancel))
+    def return_component(self, comp):
+        if comp not in self.effective_inventory:
+            self.effective_inventory[comp] = 0
+        if self.effective_inventory[comp] >= 0:
+            self.effective_inventory[comp] += 1
+    def do_cancel(self, arg):
+        global scene
+        self.guihandler.clear()
+        scene = LevelSelector(self.guihandler)
+    def do_save(self, arg):
+        global scene, player
+        self.guihandler.clear()
+        player.inventory = self.effective_inventory
+        newteam = []
+        for i, ue in enumerate(self.uniteds):
+            newteam.append(ue.make_unit())
+        scene = LevelSelector(self.guihandler)
+        player.team = newteam
     
 def get_drop(chances):
     total = sum(map(lambda item: int(item[1]), chances))
@@ -495,8 +615,9 @@ class LevelSelector(Scene):
         self.guihandler = guihandler
         global player
         self.guihandler.objects.append(MenuBackground())
+        self.guihandler.objects.append(Button(position=(100, 100), label="Modify team", fn=self.do_build_unit))
         for i, lvl in enumerate(player.available_levels):
-             self.guihandler.objects.append(Button(position=(100,100+50*i), label=lvl.name, fn=self.start_level, arg=lvl))
+             self.guihandler.objects.append(Button(position=(100,150+50*i), label=lvl.name, fn=self.start_level, arg=lvl))
         
     def start_level(self, lvl):
         global scene, player
@@ -522,6 +643,11 @@ class LevelSelector(Scene):
         scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, lvl=lvl)
         scene.start()
         
+    def do_build_unit(self, arg):
+        global scene
+        self.guihandler.clear()
+        scene = UnitBuilder(self.guihandler)
+
     def do_quit(self, arg):
         pygame.quit()
         sys.exit(0)
@@ -533,11 +659,7 @@ class MainMenu(Scene):
         self.guihandler.objects.append(Button(position=(100,100), label="Start", fn=self.do_start))
         self.guihandler.objects.append(Button(position=(100,150), label="Skirmish", fn=self.do_skirmish))
         self.guihandler.objects.append(Button(position=(100,200), label="Quit", fn=self.do_quit))
-        
-    def do_build_unit(self, arg):
-        global scene
-        self.guihandler.clear()
-        scene = UnitBuilder(self.guihandler)
+    
 
     def do_start(self, arg):
         global scene, player
