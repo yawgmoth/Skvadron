@@ -342,6 +342,7 @@ class UnitEditor(ScreenObject):
         self.expired = False
         for c in self.unit[2:]:
             self.components[engine.components[c].type] = c
+        self.show_hint = (0,0)
     def render(self, screen):
         if self.parent.selected_unit == self:
             pygame.draw.circle(screen, (0,255,0), (self.position[0] + GRID_SIZE/2,self.position[1]+GRID_SIZE/2), GRID_SIZE/2, 4)
@@ -349,9 +350,27 @@ class UnitEditor(ScreenObject):
         screen.blit(img, self.position, area)
         at = GRID_SIZE
         for t in [engine.ATTACK, engine.DEFENSE, engine.SPECIAL]:
+            hx, hy = (100,5)
             if t in self.components:
                 img, area = graphman.get_graphic_for_ability(engine.components[self.components[t]].icon)
                 screen.blit(img, (self.position[0], self.position[1]+at), area)
+                c = self.components[t]
+                if self.show_hint and self.show_hint[0] > self.position[0] and \
+                   self.show_hint[0] < self.position[0]+GRID_SIZE and \
+                   self.show_hint[1] > self.position[1] + at and \
+                   self.show_hint[1] < self.position[1] + at + GRID_SIZE:
+                    font = pygame.font.Font(None, 16)
+                    img = font.render(engine.components[c].name, True, (0,0,0))
+                    screen.blit(img, (hx,hy))
+                    hy = 20
+                    img = font.render(engine.components[c].description, True, (0,0,0))
+                    if img.get_width() > 500:
+                        desc = engine.components[c].description.split()
+                        img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                        screen.blit(img, (hx,hy))
+                        img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                        hy = 35
+                    screen.blit(img, (hx,hy))
                 at += GRID_SIZE
         return
     def handle_click(self,where, btn):
@@ -374,6 +393,9 @@ class UnitEditor(ScreenObject):
         for t in self.components:
             result.append(self.components[t])
         return result
+        
+    def handle_mouse(self, pos, rel):
+        self.show_hint = pos
 
 class InventoryEditor(ScreenObject):
     def __init__(self, parent, inventory, position):
@@ -381,7 +403,9 @@ class InventoryEditor(ScreenObject):
         self.inventory = inventory
         self.position = position
         self.expired = False
+        self.show_hint = (0,0)
     def render(self, screen):
+        
         for i,t in enumerate([engine.ATTACK, engine.DEFENSE, engine.SPECIAL]):
             comps = []
             for c in self.inventory:
@@ -389,8 +413,27 @@ class InventoryEditor(ScreenObject):
                     comps.append((c,self.inventory[c]))
             comps.sort(key=lambda (name,cnt): name)
             for j,t in enumerate(comps):
+                hx,hy = (100,5)
                 img,area = graphman.get_graphic_for_ability(engine.components[t[0]].icon)
                 screen.blit(img, (self.position[0]+j*GRID_SIZE,self.position[1] + i*50), area)
+                c = t[0]
+                if self.show_hint and self.show_hint[0] > self.position[0]+j*GRID_SIZE and \
+                   self.show_hint[0] < self.position[0]+(j+1)*GRID_SIZE and \
+                   self.show_hint[1] > self.position[1] + i*50 and \
+                   self.show_hint[1] < self.position[1] + (i+1)*50:
+                    font = pygame.font.Font(None, 16)
+                    img = font.render(engine.components[c].name, True, (0,0,0))
+                    screen.blit(img, (hx,hy))
+                    hy = self.position[1]-30
+                    img = font.render(engine.components[c].description, True, (0,0,0))
+                    if img.get_width() > 500:
+                        desc = engine.components[c].description.split()
+                        img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                        screen.blit(img, (hx,hy))
+                        img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                        hy = self.position[1]-15
+                    screen.blit(img, (hx,hy))
+                   
                 if t[1] >= 0:
                     font = pygame.font.Font(None, 16)
                     img = font.render("%d"%(t[1]), True, (255,0,0))
@@ -415,6 +458,8 @@ class InventoryEditor(ScreenObject):
                     self.parent.selected_unit.components[type] = comp
                     if self.inventory[comp] > 0:
                         self.inventory[comp] -= 1
+    def handle_mouse(self, pos, rel):
+        self.show_hint = pos
                 
                 
 
@@ -465,9 +510,45 @@ def get_drop(chances):
     print "randomed", r, "out of", total
     print chances
     return chances[-1][0]
+    
+class Drop(ScreenObject):
+    def __init__(self, name, index):
+        self.name = name
+        dx = index%5
+        dy = index/5
+        self.position = (150+dx*GRID_SIZE,200+dy*GRID_SIZE)
+        self.expired = False
+        self.show_hint = (0,0)
+        self.targeted = False
+        self.sourced = False
+        self.show_hint = (0,0)
+    def render(self, screen):
+        icon, area = graphman.get_graphic_for_ability(engine.components[self.name].icon)
+        screen.blit(icon, self.position, area)
+        if self.show_hint and self.show_hint[0] > self.position[0] and \
+           self.show_hint[0] < self.position[0] + GRID_SIZE and \
+           self.show_hint[1] > self.position[1] and \
+           self.show_hint[1] < self.position[1] + GRID_SIZE:
+            hx = 100
+            hy = 363
+            c = self.name
+            font = pygame.font.Font(None, 16)
+            img = font.render(engine.components[c].name, True, (0,0,0))
+            screen.blit(img, (hx,hy))
+            hy = 373
+            img = font.render(engine.components[c].description, True, (0,0,0))
+            if img.get_width() > 400:
+                desc = engine.components[c].description.split()
+                img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                screen.blit(img, (hx,hy))
+                img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                hy = 383
+            screen.blit(img, (hx,hy))
+    def handle_mouse(self, pos, rel):
+        self.show_hint = pos
         
 class GuiGame(Scene):
-    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage(), lvl=None):
+    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage(), lvl=None, past=False):
         self.guihandler = guihandler
         self.players = players
         self.guihandler.objects.append(Background())
@@ -479,6 +560,8 @@ class GuiGame(Scene):
         self.human_players = human_players
         self.end_reached = False
         self.lvl = lvl
+        self.drops = []
+        self.past = past
         
     def do_update(self):
         for obj in self.guihandler.objects:
@@ -491,15 +574,36 @@ class GuiGame(Scene):
         if (time.time() - self.last_turn) > speed and not self.game_ended():
             self.last_turn = time.time()
             self.turn()
-            if self.game_ended():
-                if not self.end_reached:
-                    self.guihandler.objects.append(Button(position=(150,100), label="Continue", fn=self.do_continue))
+            if self.game_ended() and not self.end_reached:
+                self.guihandler.clear()
+                self.guihandler.objects.append(Background())
+                self.guihandler.objects.append(Button(position=(150,100), label="Continue", fn=self.do_continue))
+                if self.lvl:
+                    if self.get_winner() and self.get_winner().is_human:
+                        if not self.past:
+                            player.past.append(self.lvl)
+                            del player.available_levels[player.available_levels.index(self.lvl)]
+                            player.available_levels.extend(map(Level, self.lvl.next))
+                        for d in self.lvl.drops:
+                            drop = get_drop(d)
+                            if drop not in player.inventory:
+                                player.inventory[drop] = 0
+                            player.inventory[drop] += 1
+                            self.drops.append(drop)
                 self.end_reached = True
                 
                 if not self.get_winner():
                     self.guihandler.objects.append(Text("Game ended in a draw", (25, 25)))
                 else:
-                    self.guihandler.objects.append(Text(self.get_winner().name + " has won the game", (25, 25)))
+                    wname = self.get_winner().name
+                    wverb = "has"
+                    if wname == "You":
+                        wverb = "have"
+                    self.guihandler.objects.append(Text("%s %s won the game"%(wname, wverb), (25, 25)))
+                if self.drops:
+                    self.guihandler.objects.append(Text("You gained:", (120, 150)))
+                    for i, d in enumerate(self.drops):
+                        self.guihandler.objects.append(Drop(d, i))
         font = pygame.font.Font(None, 16)
         img = font.render("Current delay: %.2f seconds"%(speed), True, (255,0,0))
         self.guihandler.screen.blit(img, (10,10))
@@ -508,16 +612,7 @@ class GuiGame(Scene):
         global scene, player
         self.guihandler.clear()
         if self.lvl:
-            if self.get_winner() and self.get_winner().is_human:
-                del player.available_levels[player.available_levels.index(self.lvl)]
-                player.available_levels.extend(map(Level, self.lvl.next))
-                for d in self.lvl.drops:
-                    drop = get_drop(d)
-                    if drop not in player.inventory:
-                        player.inventory[drop] = 0
-                    player.inventory[drop] += 1
-                print player.inventory
-            scene = LevelSelector(self.guihandler)
+            scene = LevelSelector(self.guihandler, self.past)
         else:
             scene = MainMenu(self.guihandler)
         
@@ -605,6 +700,7 @@ class Player:
             f = file(fname, "r")
             self.team = []
             self.inventory = {}
+            self.past = []
             for l in f:
                 what, line = l.split(None, 1)
                 if what == "unit:":
@@ -614,6 +710,8 @@ class Player:
                 elif what == "inventory:":
                     cnt, item = line.strip().split(None, 1)
                     self.inventory[item] = int(cnt)
+                elif what == "past:":
+                    self.past = map(Level, line.strip().split(","))
             f.close()
         else:
             self.available_levels = [Level("levels/level1.lvl")]
@@ -625,6 +723,7 @@ class Player:
                          ]
             self.inventory = {'BasicPhysicalAttack': -1, 'BasicMagicalAttack': -1,
                           'BasicPhysicalDefense': -1, 'BasicMagicalDefense': -1}
+            self.past = []
     def save(self):
         f = file(self.fname, "w")
         levels = ",".join(map(lambda l: l.fname, self.available_levels))
@@ -633,20 +732,33 @@ class Player:
             print >> f, "unit:", ",".join(map(str, t))
         for i in self.inventory:
             print >> f, "inventory:", self.inventory[i], i
+        if self.past:
+            print >> f, "past:", ",".join(map(lambda l: l.fname, self.past))
         f.close()
         
         
         
 class LevelSelector(Scene):
-    def __init__(self, guihandler):
+    def __init__(self, guihandler, past=False):
         self.guihandler = guihandler
         global player
         self.guihandler.objects.append(MenuBackground())
         self.guihandler.objects.append(Button(position=(100, 100), label="Modify team", fn=self.do_build_unit))
-        for i, lvl in enumerate(player.available_levels):
-             self.guihandler.objects.append(Button(position=(100,150+50*i), label=lvl.name, fn=self.start_level, arg=lvl))
+        if past:
+            for i, lvl in enumerate(player.past):
+                self.guihandler.objects.append(Button(position=(100,150+50*i), label=lvl.name, fn=self.start_past_level, arg=lvl))
+            self.guihandler.objects.append(Button(position=(100, 150 + 50*len(player.past)), label="Back", fn=self.do_current_levels))
+        else:
+            for i, lvl in enumerate(player.available_levels):
+                self.guihandler.objects.append(Button(position=(100,150+50*i), label=lvl.name, fn=self.start_level, arg=lvl))
+            self.guihandler.objects.append(Button(position=(100, 150 + 50*len(player.available_levels)), label="Past Levels", fn=self.do_past_levels))
+         
         
     def start_level(self, lvl):
+        self.do_start_level(lvl)
+    def start_past_level(self, lvl):
+        self.do_start_level(lvl, True)
+    def do_start_level(self, lvl, past=False):
         global scene, player
         files = ["", lvl.opponent]
         if len(sys.argv) > 2:
@@ -667,7 +779,7 @@ class LevelSelector(Scene):
             else:
                 players.append(engine.make_player(f, "Opponent"))
         self.guihandler.clear()
-        scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, lvl=lvl)
+        scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, lvl=lvl, past=past)
         scene.start()
         
     def do_build_unit(self, arg):
@@ -681,6 +793,16 @@ class LevelSelector(Scene):
             player.save()
         pygame.quit()
         sys.exit(0)
+        
+    def do_past_levels(self, arg):
+        global scene, player
+        self.guihandler.clear()
+        scene = LevelSelector(self.guihandler, True)
+        
+    def do_current_levels(self, arg):
+        global scene, player
+        self.guihandler.clear()
+        scene = LevelSelector(self.guihandler, False)
         
 class MainMenu(Scene):
     def __init__(self, guihandler):
