@@ -399,7 +399,7 @@ class GroupShieldDefense(DefenseHandler, DHandlerComponent):
     name = "GroupShield"
     description = "Reduces physical damage to all allied units by 8% (after reductions)"
     type = DEFENSE
-    icon = 44
+    icon = 239
     def __call__(self, atk, units):
         return atk
     def finalize(self):
@@ -579,6 +579,19 @@ class LuckyArcaneShieldDefense(DefenseHandler, DHandlerComponent):
     def __call__(self, atk, units):
         if atk.type == MAGICAL and random.random() < 0.11:
             atk.damage = 0
+        return atk
+        
+@component 
+class Purifier(AttackHandler, AHandlerComponent):
+    name = "Purifier"
+    description = "All physical and magical damage dealt by this unit is converted to pure damage"
+    type = SPECIAL
+    icon = 273
+    def __init__(self):
+        self.priority = 1000
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL or atk.type == MAGICAL:
+            atk.type = PURE
         return atk
 
 @component

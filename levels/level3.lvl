@@ -1,3 +1,3 @@
 opponent teams/teamlvl3.skv
-drop BasicMixedAttack 10, BasicPureAttack 3, DoubleDamage 1, ImprovingPhysicalAttack 1
+drop BasicMixedAttack 10, BasicPureAttack 3, DoubleDamage 1, ImprovingPhysicalAttack 1, Purifier 1
 name Aggression
