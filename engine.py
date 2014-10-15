@@ -573,7 +573,7 @@ class ThornsSpecial(DefenseHandler, DHandlerComponent):
 @component
 class LuckyArcaneShieldDefense(DefenseHandler, DHandlerComponent):
     name = "LuckyMagicalDefense"
-    description = "Randomly prevents all damage of 11% of magical attacks"
+    description = "Has an 11% chance to prevent damage of any magical attacks"
     type = DEFENSE
     icon = 15
     def __call__(self, atk, units):

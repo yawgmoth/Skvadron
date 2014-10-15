@@ -701,17 +701,20 @@ class Player:
             self.team = []
             self.inventory = {}
             self.past = []
+            self.available_levels = []
             for l in f:
-                what, line = l.split(None, 1)
-                if what == "unit:":
-                    self.team.append(line.strip().split(","))
-                elif what == "levels:":
-                    self.available_levels = map(Level, line.strip().split(","))
-                elif what == "inventory:":
-                    cnt, item = line.strip().split(None, 1)
-                    self.inventory[item] = int(cnt)
-                elif what == "past:":
-                    self.past = map(Level, line.strip().split(","))
+                items = l.split()
+                if len(items) > 1:
+                    what, line = l.split(None, 1)
+                    if what == "unit:":
+                        self.team.append(line.strip().split(","))
+                    elif what == "levels:":
+                        self.available_levels = map(Level, line.strip().split(","))
+                    elif what == "inventory:":
+                        cnt, item = line.strip().split(None, 1)
+                        self.inventory[item] = int(cnt)
+                    elif what == "past:":
+                        self.past = map(Level, line.strip().split(","))
             f.close()
         else:
             self.available_levels = [Level("levels/level1.lvl")]
