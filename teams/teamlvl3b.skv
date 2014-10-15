@@ -1,0 +1,5 @@
+unit2 5 RandomTargetSelector LifeLeechPhysicalAttack GroupShield Achilles
+unit1 8 WeakestTargetSelector BasicMixedAttack LuckyMagicalDefense 
+unit3 2 RoundRobinTargetSelector BasicPureAttack BasicPhysicalDefense 
+unit4 11 WeakestTargetSelector BasicPhysicalAttack GroupShield Thorns
+unit2 4 RoundRobinTargetSelector BasicMixedAttack BasicPhysicalDefense 

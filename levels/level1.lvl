@@ -1,4 +1,4 @@
 opponent teams/teamlvl1.skv
-drop Thorns 1, Achilles 1, DoubleAttack 1
+drop BasicMixedAttack 10, BasicPureAttack 3, DoubleAttack 1, LifeLeechPhysicalAttack 1
 next levels/level2.lvl
 name Simple times

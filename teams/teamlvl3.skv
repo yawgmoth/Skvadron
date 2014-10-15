@@ -1,0 +1,5 @@
+unit2 5 RandomTargetSelector LifeLeechPhysicalAttack LuckyMagicalDefense DoubleAttack
+unit1 8 WeakestTargetSelector PhysicalBurstAttack LuckyMagicalDefense 
+unit3 2 RoundRobinTargetSelector PhysicalBurstAttack BasicPhysicalDefense 
+unit4 11 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Curse
+unit2 4 RoundRobinTargetSelector BasicMixedAttack BasicPhysicalDefense 

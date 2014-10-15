@@ -1,3 +1,5 @@
-opponent teams/team27.skv
-drop Thorns 1, Achilles 1, DoubleAttack 1
+opponent teams/teamlvl2.skv
+drop LuckyMagicalDefense 10, GroupShield 3, DoubleHealth 1, Thorns 1
+next levels/level3.lvl
+next levels/level3b.lvl
 name Complex times
