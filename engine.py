@@ -143,12 +143,18 @@ class Game(object):
         self.players = players
     def game_ended(self):
         has_units = 0
+        if self.turns > 10000:
+            print "PANIC MODE, THEY DON'T FINISH!"
+            for p in self.players:
+                p.units = []
+            return True
         for p in self.players:
             if p.units:
                 has_units += 1
         return has_units <= 1
     def run(self):
         current_player = 0
+        self.turns = 0
         while not self.game_ended() and self.players:
             enemy_units = []
             for i, p in enumerate(self.players):
@@ -157,6 +163,7 @@ class Game(object):
             self.players[current_player].make_turn(enemy_units)
             current_player += 1
             current_player %= len(self.players)
+            self.turns += 1
         winner = None
         for i,p in enumerate(self.players):
             #print p.name, "has", len(p.units), "units left"

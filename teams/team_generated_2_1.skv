@@ -1,5 +1,5 @@
-unit0 4 RandomTargetSelector BasicPureAttack BasicPhysicalDefense Thorns
-unit1 17 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Thorns
-unit2 21 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Thorns
-unit3 22 WeakestTargetSelector BasicMixedAttack BasicPhysicalDefense Purifier
-unit4 28 RandomTargetSelector BasicPureAttack SuperHealingDefense Thorns
+unit0 5 RoundRobinTargetSelector ImprovingPhysicalAttack LuckyMagicalDefense DoubleDamage
+unit1 6 RandomTargetSelector BasicMixedAttack BasicPhysicalDefense Thorns
+unit2 28 RandomTargetSelector BasicMixedAttack BasicPhysicalDefense Purifier
+unit3 1 RoundRobinTargetSelector BasicMixedAttack LuckyMagicalDefense Thorns
+unit4 18 RoundRobinTargetSelector BasicPhysicalAttack SuperHealingDefense Thorns

@@ -1,5 +1,5 @@
 opponent teams/team_generated_2_1.skv
-drop LifeLeechPhysicalAttack 90, ImprovingPhysicalAttack 9, DoubleHealth 1
+drop LifeLeechPhysicalAttack 90, Purifier 9, PhysicalBurstAttack 1
 next levels/level_generated_3_0.lvl
 next levels/level_generated_3_1.lvl
 next levels/level_generated_3_2.lvl

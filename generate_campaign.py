@@ -68,6 +68,25 @@ def make_opp_inventory(allowable={}):
     result.update(allowable)
     return result
 
+POPULATIONSIZE = 3
+    
+def trytobeat(inventory, oteam):
+    perc = 0.0
+    i = 0
+    population = map(lambda t: (t,winrate((0,t), (1,oteam))), [make_random_team(inventory) for i in xrange(POPULATIONSIZE)])
+    while i < 25 and perc < 0.6:
+        i += 1
+        population.extend(map(lambda t: (t,winrate((0,t), (1,oteam))), [make_random_team(inventory) for i in xrange(2)]))
+        population.sort(key=lambda (t, p): p)
+        for i in xrange(3):
+            newteam = population[0][0][:1+i] + population[1][0][1+i:]
+            population.append((newteam, winrate((0,newteam), (1,oteam))))
+        population.sort(key=lambda (t, p): p)
+        population = population[:POPULATIONSIZE]
+        pteam = make_random_team(inventory)
+        perc = winrate((0,pteam), (1,oteam))
+        print perc
+    return pteam
     
 def make_campaign(initial, progression):
     for i,p in enumerate(progression):
@@ -75,8 +94,8 @@ def make_campaign(initial, progression):
             print allowable
             perc = 0.0
             while abs(perc - target_perc) > 0.1:
-                pteam = make_random_team(initial)
                 oteam = make_random_team(make_opp_inventory(allowable), cnt)
+                pteam = trytobeat(initial, oteam) #make_random_team(initial)
                 perc = winrate((0,pteam), (1,oteam))
                 print item, perc
             f = open('teams/team_generated_%d_%d.skv'%(i,j), 'w')
