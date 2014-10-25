@@ -1,0 +1,5 @@
+unit0 12 RandomTargetSelector BasicMixedAttack BasicPhysicalDefense Thorns
+unit1 20 WeakestTargetSelector LifeLeechPhysicalAttack SuperHealingDefense
+unit2 24 RoundRobinTargetSelector BasicPhysicalAttack LuckyMagicalDefense
+unit3 3 RoundRobinTargetSelector BasicMixedAttack BasicMagicalDefense
+unit4 28 WeakestTargetSelector BasicMagicalAttack BasicMagicalDefense

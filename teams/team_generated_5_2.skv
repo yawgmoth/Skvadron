@@ -1,0 +1,5 @@
+unit0 8 RoundRobinTargetSelector BasicPureAttack BasicMagicalDefense DoubleHealth
+unit1 18 WeakestTargetSelector BasicPhysicalAttack EnergyShieldDefense DoubleHealth
+unit2 20 RoundRobinTargetSelector BasicMagicalAttack BasicPhysicalDefense DoubleHealth
+unit3 27 RandomTargetSelector LifeLeechPhysicalAttack BasicPhysicalDefense DoubleHealth
+unit4 25 WeakestTargetSelector BasicPhysicalAttack SuperHealingDefense Curse

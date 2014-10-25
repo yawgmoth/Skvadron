@@ -1,0 +1,5 @@
+unit0 19 RoundRobinTargetSelector BasicPhysicalAttack BasicPhysicalDefense DoubleHealth
+unit1 11 RoundRobinTargetSelector ImprovingPhysicalAttack BasicMagicalDefense DoubleDamage
+unit2 25 WeakestTargetSelector BasicPhysicalAttack SuperHealingDefense DoubleDamage
+unit3 3 RandomTargetSelector BasicPureAttack BasicPhysicalDefense DoubleDamage
+unit4 16 RandomTargetSelector BasicPhysicalAttack EnergyShieldDefense Thorns

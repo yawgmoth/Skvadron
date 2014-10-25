@@ -1,0 +1,5 @@
+unit0 8 WeakestTargetSelector ImprovingPhysicalAttack LuckyMagicalDefense DoubleDamage
+unit1 19 RandomTargetSelector BasicMagicalAttack EnergyShieldDefense Thorns
+unit2 22 WeakestTargetSelector BasicPureAttack SuperHealingDefense Purifier
+unit3 30 RandomTargetSelector LifeLeechPhysicalAttack BasicMagicalDefense Purifier
+unit4 26 RoundRobinTargetSelector PhysicalBurstAttack SuperHealingDefense DoubleHealth

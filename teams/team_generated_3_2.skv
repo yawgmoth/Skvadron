@@ -1,0 +1,5 @@
+unit0 17 WeakestTargetSelector BasicPureAttack EnergyShieldDefense Purifier
+unit1 3 WeakestTargetSelector LifeLeechPhysicalAttack LuckyMagicalDefense Purifier
+unit2 29 RandomTargetSelector LifeLeechPhysicalAttack SuperHealingDefense Thorns
+unit3 20 WeakestTargetSelector BasicPureAttack BasicPhysicalDefense Purifier
+unit4 15 RandomTargetSelector PhysicalBurstAttack SuperHealingDefense Thorns

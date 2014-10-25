@@ -1,0 +1,6 @@
+opponent teams/team_generated_2_2.skv
+drop Thorns 90, DoubleDamage 9, PhysicalBurstAttack 1
+next levels/level_generated_3_0.lvl
+next levels/level_generated_3_1.lvl
+next levels/level_generated_3_2.lvl
+name Thorns

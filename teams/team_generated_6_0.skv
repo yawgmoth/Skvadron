@@ -1,0 +1,5 @@
+unit0 1 RandomTargetSelector LifeLeechPhysicalAttack GroupShield Purifier
+unit1 1 RoundRobinTargetSelector BasicMagicalAttack EnergyShieldDefense Curse
+unit2 1 RoundRobinTargetSelector LifeLeechPhysicalAttack BasicPhysicalDefense DoubleHealth
+unit3 1 RoundRobinTargetSelector BasicPureAttack SuperHealingDefense EnergyContainer
+unit4 1 WeakestTargetSelector BasicMagicalAttack GroupShield DoubleDamage

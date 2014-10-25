@@ -1,0 +1,6 @@
+opponent teams/team_generated_1_1.skv
+drop LuckyMagicalDefense 90, LifeLeechPhysicalAttack 9, ImprovingPhysicalAttack 1
+next levels/level_generated_2_0.lvl
+next levels/level_generated_2_1.lvl
+next levels/level_generated_2_2.lvl
+name LuckyMagicalDefense

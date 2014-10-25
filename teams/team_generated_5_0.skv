@@ -1,0 +1,5 @@
+unit0 23 RandomTargetSelector GroupBuff BasicMagicalDefense Purifier
+unit1 22 WeakestTargetSelector ImprovingPhysicalAttack EnergyShieldDefense Thorns
+unit2 3 RandomTargetSelector BasicMagicalAttack BasicPhysicalDefense Purifier
+unit3 6 RoundRobinTargetSelector BasicPureAttack BasicPhysicalDefense Curse
+unit4 2 WeakestTargetSelector LifeLeechPhysicalAttack LuckyMagicalDefense DoubleHealth

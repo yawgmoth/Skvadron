@@ -1,0 +1,5 @@
+unit0 19 RoundRobinTargetSelector BasicPureAttack BasicMagicalDefense Thorns
+unit1 16 RoundRobinTargetSelector BasicPureAttack BasicMagicalDefense
+unit2 29 RandomTargetSelector BasicMagicalAttack BasicMagicalDefense
+unit3 24 RandomTargetSelector LifeLeechPhysicalAttack BasicPhysicalDefense
+unit4 15 RandomTargetSelector BasicMagicalAttack BasicMagicalDefense

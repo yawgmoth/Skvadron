@@ -1,0 +1,5 @@
+unit0 9 RandomTargetSelector ImprovingPhysicalAttack SuperHealingDefense Purifier
+unit1 6 WeakestTargetSelector LifeLeechPhysicalAttack BasicMagicalDefense Thorns
+unit2 14 RandomTargetSelector BasicPhysicalAttack SuperHealingDefense Thorns
+unit3 30 RandomTargetSelector BasicPhysicalAttack BasicMagicalDefense Thorns
+unit4 10 WeakestTargetSelector BasicPureAttack BasicMagicalDefense Thorns

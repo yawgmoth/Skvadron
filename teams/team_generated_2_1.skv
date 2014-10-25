@@ -1,0 +1,5 @@
+unit0 4 RandomTargetSelector BasicPureAttack BasicPhysicalDefense Thorns
+unit1 17 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Thorns
+unit2 21 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Thorns
+unit3 22 WeakestTargetSelector BasicMixedAttack BasicPhysicalDefense Purifier
+unit4 28 RandomTargetSelector BasicPureAttack SuperHealingDefense Thorns

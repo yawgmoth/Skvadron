@@ -583,7 +583,9 @@ class GuiGame(Scene):
                         if not self.past:
                             player.past.append(self.lvl)
                             del player.available_levels[player.available_levels.index(self.lvl)]
-                            player.available_levels.extend(map(Level, self.lvl.next))
+                            for n in self.lvl.next:
+                                if n not in map(lambda l: l.name, player.available_levels + player.past):
+                                    player.available_levels.append(Level(n))
                         for d in self.lvl.drops:
                             drop = get_drop(d)
                             if drop not in player.inventory:
@@ -635,7 +637,6 @@ class GuiGame(Scene):
         if self.current_player in self.human_players:
             if self.source and self.target_storage.target and self.target_storage.target.health > 0:
                  self.players[self.current_player].make_attack(self.source, enemy_units)
-                 #self.source = None
                  self.target_storage.target = None
             else:
                  turndone = False
@@ -717,7 +718,8 @@ class Player:
                         self.past = map(Level, line.strip().split(","))
             f.close()
         else:
-            self.available_levels = [Level("levels/level1.lvl")]
+            
+            self.available_levels = [Level("levels/level_generated_0_0.lvl")]
             self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense'],
                          ["unit2", 8, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicMagicalDefense'],
                          ["unit3", 11, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicPhysicalDefense'],

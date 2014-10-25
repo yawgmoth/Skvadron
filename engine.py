@@ -107,9 +107,10 @@ class Unit(object):
         if not found:
             self.buffs.append(buff)
     def die(self):
-        self.owner.units.remove(self)
-        for h in self.attack_handlers + self.defense_handlers:
-            h.die()
+        if self in self.owner.units:
+            self.owner.units.remove(self)
+            for h in self.attack_handlers + self.defense_handlers:
+                h.die()
     def finalize(self):
         for h in self.attack_handlers + self.defense_handlers:
             h.finalize()
@@ -652,10 +653,10 @@ def make_player_from_team(team, name, mk_component=make_component, is_human=Fals
     p.finalize()
     return p
 
-def game(teams):
+def game(teams, mk_player=make_player):
     players = []
     for i, fname in enumerate(teams):
-        p = make_player(fname, "player %d"%(i+1))
+        p = mk_player(fname, "player %d"%(i+1))
         players.append(p)
         
     g = Game(players)

@@ -1,0 +1,5 @@
+unit0 25 WeakestTargetSelector BasicMagicalAttack GroupShield DoubleDamage
+unit1 29 RandomTargetSelector BasicMagicalAttack GroupShield Purifier
+unit2 3 RoundRobinTargetSelector GroupBuff BasicMagicalDefense DoubleDamage
+unit3 11 RandomTargetSelector ImprovingPhysicalAttack BasicPhysicalDefense Thorns
+unit4 26 WeakestTargetSelector BasicPureAttack BasicPhysicalDefense Thorns
