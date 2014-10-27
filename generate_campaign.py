@@ -72,10 +72,10 @@ POPULATIONSIZE = 3
     
 def trytobeat(inventory, oteam):
     perc = 0.0
-    i = 0
+    iter = 0
     population = map(lambda t: (t,winrate((0,t), (1,oteam))), [make_random_team(inventory) for i in xrange(POPULATIONSIZE)])
-    while i < 25 and perc < 0.6:
-        i += 1
+    while iter < 25 and perc < 0.6:
+        iter += 1
         population.extend(map(lambda t: (t,winrate((0,t), (1,oteam))), [make_random_team(inventory) for i in xrange(2)]))
         population.sort(key=lambda (t, p): p)
         for i in xrange(3):
