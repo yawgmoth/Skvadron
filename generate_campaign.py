@@ -81,9 +81,9 @@ def trytobeat(inventory, oteam):
         for i in xrange(3):
             newteam = population[0][0][:1+i] + population[1][0][1+i:]
             population.append((newteam, winrate((0,newteam), (1,oteam))))
-        population.sort(key=lambda (t, p): p)
+        population.sort(key=lambda (t, p): -p)
         population = population[:POPULATIONSIZE]
-        pteam = make_random_team(inventory)
+        pteam = population[0][0] #make_random_team(inventory)
         perc = winrate((0,pteam), (1,oteam))
         print perc
     return pteam
