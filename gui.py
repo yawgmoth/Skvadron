@@ -584,7 +584,7 @@ class GuiGame(Scene):
                             player.past.append(self.lvl)
                             del player.available_levels[player.available_levels.index(self.lvl)]
                             for n in self.lvl.next:
-                                if n not in map(lambda l: l.name, player.available_levels + player.past):
+                                if n.strip() not in map(lambda l: l.fname.strip(), player.available_levels + player.past):
                                     player.available_levels.append(Level(n))
                         for d in self.lvl.drops:
                             drop = get_drop(d)
@@ -690,9 +690,9 @@ class Level:
             elif l.startswith('drop'):
                  self.drops.append(map(lambda s: s.strip().split(), l.split(None, 1)[1].split(',')))
             elif l.startswith('next'):
-                 self.next.append(l.split()[1])
+                 self.next.append(l.split()[1].strip())
             elif l.startswith('name'):
-                 self.name = l.split(None, 1)[1]
+                 self.name = l.split(None, 1)[1].strip()
     
 class Player:
     def __init__(self, fname=""):
