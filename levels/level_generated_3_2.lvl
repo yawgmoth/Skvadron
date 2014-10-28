@@ -1,5 +1,5 @@
 opponent teams/team_generated_3_2.skv
-drop DoubleDamage 90, PhysicalBurstAttack 9, GroupShield 1
+drop DoubleDamage 90, PhysicalBurstAttack 9, DoubleAttack 1
 next levels/level_generated_4_0.lvl
 next levels/level_generated_4_1.lvl
 next levels/level_generated_4_2.lvl

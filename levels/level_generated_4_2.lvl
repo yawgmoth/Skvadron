@@ -1,5 +1,5 @@
 opponent teams/team_generated_4_2.skv
-drop EnergyShieldDefense 90, DoubleAttack 9, GroupBuff 1
+drop EnergyShieldDefense 90, Curse 9, GroupBuff 1
 next levels/level_generated_5_0.lvl
 next levels/level_generated_5_1.lvl
 next levels/level_generated_5_2.lvl

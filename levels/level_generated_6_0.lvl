@@ -1,4 +1,4 @@
 opponent teams/team_generated_6_0.skv
 drop GroupBuff 90, EnergyContainer 9, Achilles 1
 next levels/level_generated_7_0.lvl
-name Generated 6 0
+name GroupBuff

@@ -1,5 +1,5 @@
-unit0 25 WeakestTargetSelector BasicMagicalAttack GroupShield DoubleDamage
-unit1 29 RandomTargetSelector BasicMagicalAttack GroupShield Purifier
-unit2 3 RoundRobinTargetSelector GroupBuff BasicMagicalDefense DoubleDamage
-unit3 11 RandomTargetSelector ImprovingPhysicalAttack BasicPhysicalDefense Thorns
-unit4 26 WeakestTargetSelector BasicPureAttack BasicPhysicalDefense Thorns
+unit0 12 WeakestTargetSelector BasicMagicalAttack LuckyMagicalDefense DoubleAttack
+unit1 25 RoundRobinTargetSelector LifeLeechPhysicalAttack SuperHealingDefense DoubleDamage
+unit2 3 WeakestTargetSelector BasicPhysicalAttack GroupShield Purifier
+unit3 5 WeakestTargetSelector BasicMagicalAttack SuperHealingDefense Thorns
+unit4 25 RandomTargetSelector ImprovingPhysicalAttack SuperHealingDefense DoubleDamage
