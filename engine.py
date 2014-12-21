@@ -467,7 +467,7 @@ class GroupShieldDefense(DefenseHandler, DHandlerComponent):
         for h in self.handlers:
             h.unit.defense_handlers.remove(h)
             
-class WeakDamageBoost(DefenseHandler, DHandlerComponent):
+class WeakDamageBoost(DefenseHandler):
     def __init__(self, unit):
         self.priority = 2
         self.unit = unit
@@ -495,6 +495,36 @@ class GroupBuff(AttackHandler, AHandlerComponent):
     def die(self):
         for h in self.handlers:
             h.unit.attack_handlers.remove(h)
+            
+class BeastDamageBoost(AttackHandler):
+    def __init__(self, unit):
+        self.priority = 2
+        self.unit = unit
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL and atk.source.has_trait(BEAST):
+            atk.damage *= 1.5
+        return atk
+            
+@component
+class BeastMaster(DefenseHandler, DHandlerComponent):
+    name = "BeastMaster"
+    description = "Increases phyiscal damage of all your beasts by 50%; This unit takes 50% less physical damage from beasts"
+    type = SPECIAL
+    icon = 199
+    def __call__(self, atk, units):
+        if atk.source.has_trait(BEAST) and atk.type == PHYSICAL:
+            atk.damage *= 0.5
+        return atk
+    def finalize(self):
+        self.handlers = []
+        for u in self.unit.owner.units:
+            h = BeastDamageBoost(u)
+            u.add_attack_handler(h)
+            self.handlers.append(h)
+    def die(self):
+        for h in self.handlers:
+            h.unit.attack_handlers.remove(h)
+
         
 @component 
 class DoubleHealthSpecial(Component):
@@ -672,9 +702,10 @@ class SkeletonTrait(DefenseHandler, DHandlerComponent):
     description = "If unit would die from physical damage, there is a 20% chance it will be restored to 30% health instead; Unit is undead"
     type = TRAIT
     icon = 42
-    def __init__(self, unit):
+    def apply(self, unit):
         self.unit = unit
-        unit.traits.append(UNDEAD)
+        self.unit.add_defense_handler(self)
+        self.unit.traits.append(UNDEAD)
     def __call__(self, atk, units):
         if atk.type == PHYSICAL and atk.damage > self.unit.health:
             r = random.random()
