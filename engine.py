@@ -7,6 +7,7 @@ PURE = 3
 class Handler(object):
     def __init__(self, priority=1):
         self.priority = priority
+        self.active = True
     def __call__(self, atk, targets):
         return atk
     def finalize(self):
@@ -19,6 +20,17 @@ class AttackHandler(Handler):
 
 class DefenseHandler(Handler):
     pass
+
+class StartTurnHandler(object):
+    def __init__(self, priority=1):
+        self.priority = priority
+        self.active = True
+    def __call__(self, unit, enemy_units):
+        pass
+    def finalize(self):
+        pass
+    def die(self):
+        pass
         
 class Component(object):
     icon = 0
@@ -35,6 +47,11 @@ class AHandlerComponent(object):
 class DHandlerComponent(object):
     def apply(self, unit):
         unit.add_defense_handler(self)
+        self.unit = unit
+        
+class SHandlerComponent(object):
+    def apply(self, unit):
+        unit.add_start_turn_handler(self)
         self.unit = unit
         
 class DamageHandler(object):
@@ -69,6 +86,7 @@ class Unit(object):
     def __init__(self, owner, name="unit", health=100.0):
         self.attack_handlers = []
         self.defense_handlers = []
+        self.start_turn_handlers = []
         self.health = health
         self.max_health = health
         self.owner = owner
@@ -76,6 +94,12 @@ class Unit(object):
         self.owner.units.append(self)
         self.components = []
         self.buffs = []
+        self.traits = []
+    def start_turn(self, enemy_units):
+        for h in self.start_turn_handlers:
+            h(self, enemy_units)
+    def has_trait(self, trait):
+        return trait in self.traits
     def get_attack(self, targets):
         atks = [Attack(self)]
         for h in self.attack_handlers:
@@ -98,6 +122,9 @@ class Unit(object):
     def add_defense_handler(self, handler):
         self.defense_handlers.append(handler)
         self.defense_handlers.sort(key=lambda h: h.priority)
+    def add_start_turn_handler(self, handler):
+        self.start_turn_handlers.append(handler)
+        self.start_turn_handlers.sort(key=lambda h: h.priority)
     def add_buff(self, buff):
         found = False
         for b in self.buffs:
@@ -124,6 +151,8 @@ class Player(object):
         self.is_human = is_human
     def make_turn(self, enemy_units):
         if self.units:
+            for u in self.units:
+                u.start_turn(enemy_units)
             self.current_unit += 1
             self.current_unit %= len(self.units)
             self.make_attack(self.units[self.current_unit], enemy_units)
@@ -184,6 +213,7 @@ ATTACK = 2
 DEFENSE = 4
 SPECIAL = 8
 DEBUG = 16
+TRAIT = 32
 
 @component
 class RoundRobinTargetSelector(AttackHandler,AHandlerComponent):
@@ -288,7 +318,7 @@ class ImprovingPhysicalAttackBuff(Buff):
 @component
 class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
     name = "ImprovingPhysicalAttack"
-    description = "Does 2 physical attack on the first attack, but doubles damage after every attack"
+    description = "Does 2 physical attack on the first attack, but doubles damage after every attack. When it would reach 128 damage, it resets to 2 instead"
     type = ATTACK
     icon = 370
     def __init__(self):
@@ -299,6 +329,9 @@ class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
         dmg = self.dmg
         self.dmg *= 2.0
         atk.source.add_buff(ImprovingPhysicalAttackBuff(self.dmg - dmg))
+        if self.dmg >= 128:
+            self.dmg = 2.0
+            atk.source.add_buff(ImprovingPhysicalAttackBuff(2.0-self.dmg))
         atk.type = PHYSICAL
         return atk
         
@@ -311,6 +344,19 @@ class BasicPureAttack(AttackHandler, AHandlerComponent):
     def __call__(self, atk, targets):
         atk.damage = 8.0
         atk.type = PURE
+        return atk
+        
+@component
+class HolySmiteAttack(AttackHandler, AHandlerComponent):
+    name = "HolySmiteAttack"
+    description = "Does 9 physical damage; damage against undead units is doubled"
+    type = ATTACK
+    icon = 376
+    def __call__(self, atk, targets):
+        atk.damage = 9.0
+        atk.type = PHYSICAL
+        if atk.target.has_trait(UNDEAD):
+            atk.damage *= 2.0
         return atk
         
 @component
@@ -329,6 +375,7 @@ class LifeLeechHandler(DamageHandler):
         self.unit = unit
     def __call__(self, atk):
         self.unit.health += 0.3*atk.damage
+        self.unit.health = min(self.unit.health, self.unit.max_health)
         
         
 @component
@@ -399,7 +446,7 @@ class WeakShieldDefense(DefenseHandler, DHandlerComponent):
         self.unit = unit
     def __call__(self, atk, units):
         if atk.type == PHYSICAL:
-            atk.damage *= 0.9
+            atk.damage *= 0.92
         return atk
         
 @component
@@ -467,6 +514,7 @@ class AchillesSpecial(DefenseHandler, DHandlerComponent):
     icon = 211
     def apply(self, unit):
         unit.health = 1
+        unit.max_health = 1
         unit.add_defense_handler(self)
     def __call__(self, atk, units):
         if atk.type in [PHYSICAL, MAGICAL] and random.random() < 0.97:
@@ -614,10 +662,57 @@ class ConsoleLogDefense(DefenseHandler, DHandlerComponent):
         if atk.target:
             print atk.target.owner.name, atk.target.name, "takes", atk.damage, "(%.2f -> %.2f)"%(atk.target.health, atk.target.health - atk.damage), "by", atk.source.owner.name, atk.source.name
         return atk
+        
+UNDEAD = 1
+BEAST = 2
+        
+@component
+class SkeletonTrait(DefenseHandler, DHandlerComponent): 
+    name = "SkeletonTrait"
+    description = "If unit would die from physical damage, there is a 20% chance it will be restored to 30% health instead; Unit is undead"
+    type = TRAIT
+    icon = 42
+    def __init__(self, unit):
+        self.unit = unit
+        unit.traits.append(UNDEAD)
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL and atk.damage > self.unit.health:
+            r = random.random()
+            if r < 0.2:
+                atk.damage = 0
+                self.unit.health = 0.3 * self.unit.max_health
+        return atk
+        
+@component
+class SavageBeastTrait(AttackHandler, AHandlerComponent): 
+    name = "SavageBeastTrait"
+    description = "Unit deals 20% extra physical damage to units under 30%; Unit is a beast"
+    type = TRAIT
+    icon = 360
+    def __init__(self, unit):
+        self.unit = unit
+        unit.traits.append(BEAST)
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL and atk.target.health < 0.3 *atk.target.max_health:
+            atk.damage *= 1.2
+        return atk
+
+@component
+class TameBeastTrait(StartTurnHandler, SHandlerComponent): 
+    name = "TameBeastTrait"
+    description = "Unit heals 3 health at the start of every turn; Unit is a beast"
+    type = TRAIT
+    icon = 262
+    def __init__(self, unit):
+        self.unit = unit
+        unit.traits.append(BEAST)
+    def __call__(self, unit, enemy_units):
+        unit.health += 3.0
+        unit.health = min(unit.health, unit.max_health)
 
 def make_component(name):
     return components[name]()
-        
+
 def make_unit(owner, name, comps, index=None, mk_component=make_component):
     u = Unit(owner, name)
     for c in comps:

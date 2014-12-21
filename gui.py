@@ -349,7 +349,7 @@ class UnitEditor(ScreenObject):
         img, area = graphman.get_graphic_for_unit(int(self.unit[1]))
         screen.blit(img, self.position, area)
         at = GRID_SIZE
-        for t in [engine.ATTACK, engine.DEFENSE, engine.SPECIAL]:
+        for t in ALL_TYPES:
             hx, hy = (100,5)
             if t in self.components:
                 img, area = graphman.get_graphic_for_ability(engine.components[self.components[t]].icon)
@@ -381,7 +381,7 @@ class UnitEditor(ScreenObject):
         if x > self.position[0] and x < self.position[0] + GRID_SIZE and \
            y > self.position[1] + GRID_SIZE and y < self.position[1] + (len(self.components) +1)*GRID_SIZE:
             at = (y - (self.position[1] + GRID_SIZE))/GRID_SIZE
-            for t in [engine.ATTACK, engine.DEFENSE, engine.SPECIAL]:
+            for t in ALL_TYPES:
                 if t in self.components and at == 0:
                     self.parent.return_component(self.components[t])
                     del self.components[t]
@@ -396,6 +396,8 @@ class UnitEditor(ScreenObject):
         
     def handle_mouse(self, pos, rel):
         self.show_hint = pos
+        
+ALL_TYPES = [engine.ATTACK, engine.DEFENSE, engine.SPECIAL, engine.TRAIT]
 
 class InventoryEditor(ScreenObject):
     def __init__(self, parent, inventory, position):
@@ -406,7 +408,7 @@ class InventoryEditor(ScreenObject):
         self.show_hint = (0,0)
     def render(self, screen):
         
-        for i,t in enumerate([engine.ATTACK, engine.DEFENSE, engine.SPECIAL]):
+        for i,t in enumerate(ALL_TYPES):
             comps = []
             for c in self.inventory:
                 if engine.components[c].type == t:
@@ -433,18 +435,18 @@ class InventoryEditor(ScreenObject):
                         img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
                         hy = self.position[1]-15
                     screen.blit(img, (hx,hy))
-                   
                 if t[1] >= 0:
                     font = pygame.font.Font(None, 16)
                     img = font.render("%d"%(t[1]), True, (255,0,0))
                     screen.blit(img, (self.position[0]+j*GRID_SIZE,self.position[1] + i*50))
+
     def handle_click(self, where, btn):
         x, y = where
         if not self.parent.selected_unit:
             return
-        if x > self.position[0] and y > self.position[1] and y < self.position[1] + 3*50:
+        if x > self.position[0] and y > self.position[1] and y < self.position[1] + len(ALL_TYPES)*50:
             index = (x-self.position[0])/GRID_SIZE
-            type = [engine.ATTACK, engine.DEFENSE, engine.SPECIAL][(y-self.position[1])/50]
+            type = ALL_TYPES[(y-self.position[1])/50]
             comps = []
             for c in self.inventory:
                 if engine.components[c].type == type:
@@ -474,7 +476,7 @@ class UnitBuilder(Scene):
         self.selected_unit = None
         self.uniteds = []
         for i, u in enumerate(player.team):
-            ue = UnitEditor(self, u, (100+i*50, 230))
+            ue = UnitEditor(self, u, (100+i*50, 250))
             self.guihandler.objects.append(ue)
             self.uniteds.append(ue)
         self.guihandler.objects.append(InventoryEditor(self, self.effective_inventory, (100,50)))
@@ -507,8 +509,6 @@ def get_drop(chances):
         if at <= r and at + int(i[1]) > r:
             return i[0]
         at += int(i[1])
-    print "randomed", r, "out of", total
-    print chances
     return chances[-1][0]
     
 class Drop(ScreenObject):

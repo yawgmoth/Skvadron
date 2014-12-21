@@ -1,6 +1,6 @@
 import engine
 
-TYPE_NAMES = {engine.SELECTOR: "Target Selector", engine.ATTACK: "Attack", engine.DEFENSE: "Defense", engine.SPECIAL: "Special", engine.DEBUG: "Debug"}
+TYPE_NAMES = {engine.SELECTOR: "Target Selector", engine.ATTACK: "Attack", engine.DEFENSE: "Defense", engine.SPECIAL: "Special", engine.DEBUG: "Debug", engine.TRAIT: "Trait"}
 
 comps = engine.components.keys()[:]
 comps.sort(key=lambda c: engine.components[c].type)
