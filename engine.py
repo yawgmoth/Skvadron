@@ -69,6 +69,12 @@ class Attack(object):
         self.target = None
         self.type = type
         self.handlers = []
+    def copyfrom(self, atk):
+        self.source = atk.source
+        self.damage = atk.damage
+        self.target = atk.target
+        self.type = atk.type
+        self.handlers = atk.handlers[:]
     def do_damage(self):
         for h in self.handlers:
             h(self)
@@ -214,6 +220,7 @@ DEFENSE = 4
 SPECIAL = 8
 DEBUG = 16
 TRAIT = 32
+ABILITY = 64
 
 @component
 class RoundRobinTargetSelector(AttackHandler,AHandlerComponent):
@@ -371,10 +378,11 @@ class BasicMagicalAttack(AttackHandler, AHandlerComponent):
         return atk
         
 class LifeLeechHandler(DamageHandler):
-    def __init__(self, unit):
+    def __init__(self, unit, factor):
         self.unit = unit
+        self.factor = factor
     def __call__(self, atk):
-        self.unit.health += 0.3*atk.damage
+        self.unit.health += self.factor*atk.damage
         self.unit.health = min(self.unit.health, self.unit.max_health)
         
         
@@ -387,7 +395,7 @@ class LifeLeechPhysicalAttack(AttackHandler, AHandlerComponent):
     def __call__(self, atk, targets):
         atk.damage = 8.0
         atk.type = PHYSICAL
-        atk.handlers.append(LifeLeechHandler(self.unit))
+        atk.handlers.append(LifeLeechHandler(self.unit, 0.3))
         return atk
 
 @component        
@@ -551,6 +559,47 @@ class AchillesSpecial(DefenseHandler, DHandlerComponent):
             atk.damage = 0
         return atk
         
+@component
+class ZeusSpecial(AttackHandler, AHandlerComponent):
+    name = "Zeus"
+    description = "Magical attacks have a 10% chance to turn into a chain lightning, affecting all enemy units"
+    type = SPECIAL
+    icon = 286
+    def __init__(self):
+        self.priority = 1000
+    def __call__(self, atk, units):
+        if atk.type == MAGICAL and random.random() < 0.1:
+            result = []
+            for u in units:
+                a1 = Attack(None)
+                a1.copyfrom(atk)
+                a1.target = u
+                result.append(a1)
+            return result
+        return atk
+        
+@component
+class CerberusSpecial(AttackHandler, AHandlerComponent):
+    name = "Cerberus"
+    description = "All physical attacks attack 2 additional random enemies for 25% physical damage each (primary target may be hit again)"
+    type = SPECIAL
+    icon = 219
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL:
+            result = [atk]
+            a1 = Attack(None)
+            a1.copyfrom(atk)
+            a1.target = random.choice(units)
+            a1.damage *= 0.25
+            result.append(a1)
+            a1 = Attack(None)
+            a1.copyfrom(atk)
+            a1.target = random.choice(units)
+            a1.damage *= 0.25
+            result.append(a1)
+            return result
+        return atk
+
 @component 
 class DoubleAttackSpecial(AttackHandler, AHandlerComponent):
     name = "DoubleAttack"
@@ -695,7 +744,9 @@ class ConsoleLogDefense(DefenseHandler, DHandlerComponent):
         
 UNDEAD = 1
 BEAST = 2
-        
+HUMAN = 4
+WIZARD = 8
+
 @component
 class SkeletonTrait(DefenseHandler, DHandlerComponent): 
     name = "SkeletonTrait"
@@ -720,12 +771,48 @@ class SavageBeastTrait(AttackHandler, AHandlerComponent):
     description = "Unit deals 20% extra physical damage to units under 30%; Unit is a beast"
     type = TRAIT
     icon = 360
-    def __init__(self, unit):
+    def apply(self, unit):
         self.unit = unit
-        unit.traits.append(BEAST)
+        self.unit.add_defense_handler(self)
+        self.unit.traits.append(BEAST)
     def __call__(self, atk, units):
         if atk.type == PHYSICAL and atk.target.health < 0.3 *atk.target.max_health:
             atk.damage *= 1.2
+        return atk
+        
+@component
+class HunterTrait(AttackHandler, AHandlerComponent): 
+    name = "HunterTrait"
+    description = "Physical damage dealt by this unit is increased by 1 for each beast the enemy has; Unit is a human"
+    type = TRAIT
+    icon = 325
+    def apply(self, unit):
+        self.unit = unit
+        self.unit.add_defense_handler(self)
+        self.unit.traits.append(HUMAN)
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL:
+            for u in units:
+                if u.has_trait(BEAST):
+                    atk.damage += 1
+        return atk
+        
+@component
+class NecromancerTrait(AttackHandler, AHandlerComponent): 
+    name = "NecromancerTrait"
+    description = "Magical damage dealt to undead unit heals this unit for 75% of the damage dealt; Unit is a human wizard"
+    type = TRAIT
+    icon = 325
+    def __init__(self):
+        self.priority = 100
+    def apply(self, unit):
+        self.unit = unit
+        self.unit.add_defense_handler(self)
+        self.unit.traits.append(HUMAN)
+        self.unit.traits.append(WIZARD)
+    def __call__(self, atk, units):
+        if atk.type == MAGICAL and atk.target.has_trait(UNDEAD):
+            atk.handlers.append(LifeLeechHandler(self.unit, 0.75))
         return atk
 
 @component
@@ -734,9 +821,10 @@ class TameBeastTrait(StartTurnHandler, SHandlerComponent):
     description = "Unit heals 3 health at the start of every turn; Unit is a beast"
     type = TRAIT
     icon = 262
-    def __init__(self, unit):
+    def apply(self, unit):
         self.unit = unit
-        unit.traits.append(BEAST)
+        self.unit.add_defense_handler(self)
+        self.unit.traits.append(BEAST)
     def __call__(self, unit, enemy_units):
         unit.health += 3.0
         unit.health = min(unit.health, unit.max_health)
