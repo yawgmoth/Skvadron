@@ -166,7 +166,13 @@ for i in xrange(maxlevel+1):
         prog.append(p)
     progression.append(prog)
 
-
+for n,p in enumerate(progression):
+    print n,
+    for (i,j,k,l) in p:
+        print i,
+    print 
+    print
+    
 make_campaign(initial, progression)
 #     [[('BasicMixedAttack', 0.8, 4, {'BasicMixedAttack': -1, 'BasicPureAttack': -1, 'DoubleHealth': 1})], 
 #      [('BasicPureAttack', 0.8, 5, {'BasicMixedAttack': -1, 'BasicPureAttack': -1, 'DoubleHealth': 1})], 

@@ -584,6 +584,8 @@ class CerberusSpecial(AttackHandler, AHandlerComponent):
     description = "All physical attacks attack 2 additional random enemies for 25% physical damage each (primary target may be hit again)"
     type = SPECIAL
     icon = 219
+    def __init__(self):
+        self.priority = 100
     def __call__(self, atk, units):
         if atk.type == PHYSICAL:
             result = [atk]
@@ -753,6 +755,8 @@ class SkeletonTrait(DefenseHandler, DHandlerComponent):
     description = "If unit would die from physical damage, there is a 20% chance it will be restored to 30% health instead; Unit is undead"
     type = TRAIT
     icon = 42
+    def __init__(self):
+        self.priority = 100
     def apply(self, unit):
         self.unit = unit
         self.unit.add_defense_handler(self)
@@ -765,12 +769,36 @@ class SkeletonTrait(DefenseHandler, DHandlerComponent):
                 self.unit.health = 0.3 * self.unit.max_health
         return atk
         
+class ZombifyHandler(DamageHandler):
+    def __call__(self, atk):
+        if atk.type == PHYSICAL and atk.damage > 0 and not atk.target.has_trait(UNDEAD):
+            atk.target.traits.append(UNDEAD)
+        
+@component
+class ZombieTrait(AttackHandler, AHandlerComponent): 
+    name = "ZombieTrait"
+    description = "If unit deals physical damage to another unit, that unit will become undead; Unit is undead"
+    type = TRAIT
+    icon = 218
+    def __init__(self):
+        self.priority = 100
+    def apply(self, unit):
+        self.unit = unit
+        self.unit.add_attack_handler(self)
+        self.unit.traits.append(UNDEAD)
+    def __call__(self, atk, units):
+        if atk.type == PHYSICAL:
+            atk.add_handler(ZombifyHandler)
+        return atk
+        
 @component
 class SavageBeastTrait(AttackHandler, AHandlerComponent): 
     name = "SavageBeastTrait"
     description = "Unit deals 20% extra physical damage to units under 30%; Unit is a beast"
     type = TRAIT
     icon = 360
+    def __init__(self):
+        self.priority = 1000
     def apply(self, unit):
         self.unit = unit
         self.unit.add_defense_handler(self)
@@ -786,6 +814,8 @@ class HunterTrait(AttackHandler, AHandlerComponent):
     description = "Physical damage dealt by this unit is increased by 1 for each beast the enemy has; Unit is a human"
     type = TRAIT
     icon = 325
+    def __init__(self):
+        self.priority = 1000
     def apply(self, unit):
         self.unit = unit
         self.unit.add_defense_handler(self)
@@ -798,8 +828,8 @@ class HunterTrait(AttackHandler, AHandlerComponent):
         return atk
         
 @component
-class NecromancerTrait(AttackHandler, AHandlerComponent): 
-    name = "NecromancerTrait"
+class WarlockTrait(AttackHandler, AHandlerComponent): 
+    name = "WarlockTrait"
     description = "Magical damage dealt to undead unit heals this unit for 75% of the damage dealt; Unit is a human wizard"
     type = TRAIT
     icon = 325
