@@ -37,7 +37,7 @@ class Component(object):
     def __init__(self):
         pass
     def apply(self, unit):
-        pass
+        self.unit = unit
         
 class AHandlerComponent(object):
     def apply(self, unit):
@@ -49,10 +49,38 @@ class DHandlerComponent(object):
         unit.add_defense_handler(self)
         self.unit = unit
         
+class AbilityComponent(Component):
+    def apply(self, unit):
+        unit.add_ability(self)
+        self.unit = unit
+        
 class SHandlerComponent(object):
     def apply(self, unit):
         unit.add_start_turn_handler(self)
         self.unit = unit
+        
+class AbilityHandlerComponent(object):
+    def apply(self, unit):
+        unit.add_ability_handler(self)
+        self.unit = unit
+        
+class Ability(object):
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit)]
+    def get_targets(self, unit, enemy_units):
+        return enemy_units
+    def get_mana_cost(self):
+        return 0.0
+    def finalize(self):
+        pass
+    def die(self):
+        pass
+        
+class AbilityHandler(Handler):
+    def __call__(self, ability, valid_abilities, unit, enemy_units):
+        if valid_abilities:
+            return valid_abilities[0]
+        return None
         
 class DamageHandler(object):
     def __call__(self, atk):
@@ -61,20 +89,19 @@ class DamageHandler(object):
 class Buff(object):
     def __init__(self, count=0):
         self.count = count
+        
+ATTACK_KIND = 1
+BUFF_KIND = 2
     
 class Attack(object):
-    def __init__(self, source, damage=0, type=PHYSICAL):
+    def __init__(self, source, damage=0, type=PHYSICAL, kind=ATTACK_KIND, ability=None):
         self.source = source
         self.damage = damage
         self.target = None
         self.type = type
+        self.kind = kind
         self.handlers = []
-    def copyfrom(self, atk):
-        self.source = atk.source
-        self.damage = atk.damage
-        self.target = atk.target
-        self.type = atk.type
-        self.handlers = atk.handlers[:]
+        self.ability=ability
     def do_damage(self):
         for h in self.handlers:
             h(self)
@@ -83,40 +110,57 @@ class Attack(object):
             if self.target.health <= 0:
                 self.target.die()
     def clone(self):
-        result = Attack(self.source, self.damage, self.type)
+        result = Attack(self.source, self.damage, self.type, self.kind, self.ability)
         result.target = self.target
         result.handlers = self.handlers[:]
         return result
     
 class Unit(object):
-    def __init__(self, owner, name="unit", health=100.0):
+    def __init__(self, owner, name="unit", health=100.0, mana=100.0):
         self.attack_handlers = []
         self.defense_handlers = []
         self.start_turn_handlers = []
+        self.ability_handlers = []
         self.health = health
         self.max_health = health
+        self.mana = mana
+        self.max_mana = mana
         self.owner = owner
         self.name = name
         self.owner.units.append(self)
         self.components = []
         self.buffs = []
         self.traits = []
+        self.abilities = []
     def start_turn(self, enemy_units):
         for h in self.start_turn_handlers:
             h(self, enemy_units)
     def has_trait(self, trait):
         return trait in self.traits
     def get_attack(self, targets):
-        atks = [Attack(self)]
+        valid_abilities =[]
+        for a in self.abilities:
+            if a.get_mana_cost() < self.mana:
+                valid_abilities.append(a)
+        ability = None
+        for a in self.ability_handlers:
+            ability = a(ability, valid_abilities, self, targets)
+        if not ability:
+            print "No ability selected o_O"
+            return []
+        self.mana -= ability.get_mana_cost()
+        valid_targets = ability.get_targets(self, targets)
+        atks = ability.get_attacks(self, targets)
         for h in self.attack_handlers:
             newatks = []
             for atk in atks:
-                res = h(atk, targets)
+                res = h(atk, valid_targets)
                 if type(res) == list:
                     newatks.extend(res)
                 else:
                     newatks.append(res)
             atks = newatks
+        
         return atks
     def be_attacked(self, attack, units):
         for h in self.defense_handlers:
@@ -131,6 +175,11 @@ class Unit(object):
     def add_start_turn_handler(self, handler):
         self.start_turn_handlers.append(handler)
         self.start_turn_handlers.sort(key=lambda h: h.priority)
+    def add_ability_handler(self, handler):
+        self.ability_handlers.append(handler)
+        self.ability_handlers.sort(key=lambda h: h.priority)
+    def add_ability(self, ability):
+        self.abilities.append(ability)
     def add_buff(self, buff):
         found = False
         for b in self.buffs:
@@ -142,11 +191,13 @@ class Unit(object):
     def die(self):
         if self in self.owner.units:
             self.owner.units.remove(self)
-            for h in self.attack_handlers + self.defense_handlers:
+            for h in self.attack_handlers + self.defense_handlers + self.ability_handlers + self.abilities:
                 h.die()
     def finalize(self):
-        for h in self.attack_handlers + self.defense_handlers:
+        for h in self.attack_handlers + self.defense_handlers + self.ability_handlers + self.abilities:
             h.finalize()
+        if not self.ability_handlers:
+            self.ability_handlers.append(RandomAbilitySelector())
         
 class Player(object):
     def __init__(self, name, is_human):
@@ -217,10 +268,12 @@ def component(cls):
 SELECTOR = 1
 ATTACK = 2
 DEFENSE = 4
-SPECIAL = 8
+SPECIAL = 256
 DEBUG = 16
 TRAIT = 32
 ABILITY = 64
+ABILITY_SELECTOR = 128
+BODY = 8
 
 @component
 class RoundRobinTargetSelector(AttackHandler,AHandlerComponent):
@@ -275,43 +328,46 @@ class RandomTargetSelector(AttackHandler,AHandlerComponent):
             return atk
         atk.target = random.choice(targets)
         return atk
+        
+@component
+class RandomAbilitySelector(AbilityHandler,AbilityHandlerComponent):
+    name = "RandomAbilitySelector"
+    description = "Always select a random available ability"
+    type = ABILITY_SELECTOR
+    icon = 260
+    def __init__(self):
+        self.priority = 0
+    def __call__(self, ability, valid_abilities, unit, enemy_units):
+        return random.choice(valid_abilities)
 
 @component
-class BasicPhysicalAttack(AttackHandler, AHandlerComponent):
+class BasicPhysicalAttack(Ability, AbilityComponent):
     name = "BasicPhysicalAttack"
     description = "Does 10 physical damage"
     type = ATTACK
     icon = 395
-    def __call__(self, atk, targets):
-        atk.damage = 10.0
-        atk.type = PHYSICAL
-        return atk
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=10.0, type=PHYSICAL)]
+    
         
 @component
-class BasicMixedAttack(AttackHandler, AHandlerComponent):
+class BasicMixedAttack(Ability, AbilityComponent):
     name = "BasicMixedAttack"
     description = "Does 5 physical damage and 5 magical damage (separate damage events)"
     type = ATTACK
     icon = 393
-    def __call__(self, atk, targets):
-        atk.damage = 5.0
-        atk.type = PHYSICAL
-        atk2 = atk.clone()
-        atk2.type = MAGICAL
-        return [atk,atk2]
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=5.0, type=PHYSICAL), Attack(unit,damage=5.0, type=MAGICAL)]
         
 @component
-class PhysicalBurstAttack(AttackHandler, AHandlerComponent):
+class PhysicalBurstAttack(Ability, AbilityComponent):
     name = "PhysicalBurstAttack"
     description = "Does 4 bursts of 2,2,2 and 3 physical damage"
     type = ATTACK
     icon = 200
-    def __call__(self, atk, targets):
-        atk.damage = 2.0
-        atk.type = PHYSICAL
-        atk2 = atk.clone()
-        atk2.damage = 3.0
-        return [atk,atk.clone(),atk.clone(),atk2]
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=2.0, type=PHYSICAL), Attack(unit, damage=2.0, type=PHYSICAL),
+                Attack(unit, damage=2.0, type=PHYSICAL), Attack(unit,damage=3.0, type=PHYSICAL)]
         
 class ImprovingPhysicalAttackBuff(Buff):
     name = "ImprovingPhysicalAttack"
@@ -323,7 +379,7 @@ class ImprovingPhysicalAttackBuff(Buff):
             self.count = 4
         
 @component
-class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
+class ImprovingPhysicalAttack(Ability, AbilityComponent):
     name = "ImprovingPhysicalAttack"
     description = "Does 2 physical attack on the first attack, but doubles damage after every attack. When it would reach 128 damage, it resets to 2 instead"
     type = ATTACK
@@ -331,51 +387,51 @@ class ImprovingPhysicalAttack(AttackHandler, AHandlerComponent):
     def __init__(self):
         self.priority = 1
         self.dmg = 2.0
-    def __call__(self, atk, targets):
-        atk.damage = self.dmg
+    def get_attacks(self, unit, enemy_units):
         dmg = self.dmg
         self.dmg *= 2.0
-        atk.source.add_buff(ImprovingPhysicalAttackBuff(self.dmg - dmg))
+        unit.add_buff(ImprovingPhysicalAttackBuff(self.dmg - dmg))
         if self.dmg >= 128:
             self.dmg = 2.0
             atk.source.add_buff(ImprovingPhysicalAttackBuff(2.0-self.dmg))
-        atk.type = PHYSICAL
-        return atk
+        return [Attack(unit, damage=dmg, type=PHYSICAL)]
         
 @component
-class BasicPureAttack(AttackHandler, AHandlerComponent):
+class BasicPureAttack(Ability, AbilityComponent):
     name = "BasicPureAttack"
     description = "Does 8 pure damage"
     type = ATTACK
     icon = 372
-    def __call__(self, atk, targets):
-        atk.damage = 8.0
-        atk.type = PURE
-        return atk
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=8.0, type=PURE)]
         
 @component
-class HolySmiteAttack(AttackHandler, AHandlerComponent):
+class HolySmiteAttack(Ability, AttackHandler, Component):
     name = "HolySmiteAttack"
     description = "Does 9 physical damage; damage against undead units is doubled"
     type = ATTACK
     icon = 376
+    def __init__(self):
+        self.priority = 1
+    def apply(self, unit):
+        unit.add_ability(self)
+        unit.add_attack_handler(self)
+        self.unit = unit
     def __call__(self, atk, targets):
-        atk.damage = 9.0
-        atk.type = PHYSICAL
-        if atk.target.has_trait(UNDEAD):
+        if atk.ability == self.name and atk.target.has_trait(UNDEAD):
             atk.damage *= 2.0
         return atk
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=9.0, type=PHYSICAL, ability=self.name)]
         
 @component
-class BasicMagicalAttack(AttackHandler, AHandlerComponent):
+class BasicMagicalAttack(Ability, AbilityComponent):
     name = "BasicMagicalAttack"
     description = "Does 10 magical damage"
     type = ATTACK
     icon = 190
-    def __call__(self, atk, targets):
-        atk.damage = 10.0
-        atk.type = MAGICAL
-        return atk
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=10.0, type=MAGICAL)]
         
 class LifeLeechHandler(DamageHandler):
     def __init__(self, unit, factor):
@@ -387,16 +443,15 @@ class LifeLeechHandler(DamageHandler):
         
         
 @component
-class LifeLeechPhysicalAttack(AttackHandler, AHandlerComponent):
+class LifeLeechPhysicalAttack(Ability, AbilityComponent):
     name = "LifeLeechPhysicalAttack"
     description = "Does 8 physical damage, and restores health equal to 30% of the resulting damage"
     type = ATTACK
     icon = 267
-    def __call__(self, atk, targets):
-        atk.damage = 8.0
-        atk.type = PHYSICAL
-        atk.handlers.append(LifeLeechHandler(self.unit, 0.3))
-        return atk
+    def get_attacks(self, unit, enemy_units):
+        atk = Attack(unit, damage=8.0, type=PHYSICAL)
+        atk.handlers.append(LifeLeechHandler(unit, 0.3))
+        return [atk]
 
 @component        
 class BasicShieldDefense(DefenseHandler, DHandlerComponent):
@@ -485,15 +540,13 @@ class WeakDamageBoost(DefenseHandler):
         return atk
         
 @component
-class GroupBuff(AttackHandler, AHandlerComponent):
+class GroupBuff(Ability, AbilityComponent):
     name = "GroupBuff"
     description = "Adds 3 damage to all physical attacks of allies (before other modifiers), attacks for 5 physical damage (+3 bonus) itself"
     type = ATTACK
     icon = 202
-    def __call__(self, atk, units):
-        atk.damage = 5
-        atk.type = PHYSICAL
-        return atk
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=5.0, type=PHYSICAL)]
     def finalize(self):
         self.handlers = []
         for u in self.unit.owner.units:
@@ -571,8 +624,7 @@ class ZeusSpecial(AttackHandler, AHandlerComponent):
         if atk.type == MAGICAL and random.random() < 0.1:
             result = []
             for u in units:
-                a1 = Attack(None)
-                a1.copyfrom(atk)
+                a1 = atk.clone()
                 a1.target = u
                 result.append(a1)
             return result
@@ -589,13 +641,11 @@ class CerberusSpecial(AttackHandler, AHandlerComponent):
     def __call__(self, atk, units):
         if atk.type == PHYSICAL:
             result = [atk]
-            a1 = Attack(None)
-            a1.copyfrom(atk)
+            a1 = atk.clone()
             a1.target = random.choice(units)
             a1.damage *= 0.25
             result.append(a1)
-            a1 = Attack(None)
-            a1.copyfrom(atk)
+            a1 = atk.clone()
             a1.target = random.choice(units)
             a1.damage *= 0.25
             result.append(a1)
@@ -620,7 +670,7 @@ class DoubleDamageSpecial(AttackHandler, AHandlerComponent):
     type = SPECIAL
     icon = 203
     def __init__(self):
-        self.priority = 100
+        self.priority = 10000
     def __call__(self, atk, units):
         atk.damage *= 2
         return atk
@@ -864,8 +914,13 @@ def make_component(name):
 
 def make_unit(owner, name, comps, index=None, mk_component=make_component):
     u = Unit(owner, name)
+    compobjs = []
     for c in comps:
         comp = mk_component(c)
+        compobjs.append((c,comp))
+    # small hack to make sure specials are applied last (to make DoubleHealth work with bodies)
+    compobjs.sort(key=lambda (_,c): c.type)
+    for (c,comp) in compobjs:
         comp.apply(u)
         u.components.append(c)
     u.components.sort(key=lambda c: components[c].type)

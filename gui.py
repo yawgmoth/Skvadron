@@ -165,6 +165,9 @@ class GuiUnit(ScreenObject):
             font = pygame.font.Font(None, 16)
             img = font.render("%.2f/%.2d"%(self.unit.health, self.unit.max_health), True, (0,0,0))
             screen.blit(img, (20,400))
+            font = pygame.font.Font(None, 16)
+            img = font.render("%.2f/%.2d"%(self.unit.mana, self.unit.max_mana), True, (0,0,0))
+            screen.blit(img, (20,420))
             offsetx = 0
             if self.unit.owner.is_human:
                 offsetx = -GRID_SIZE
@@ -223,7 +226,11 @@ class GuiUnit(ScreenObject):
         screen.blit(img, self.position, area)
         
         width = max(1,int(round((26*self.unit.health)/self.unit.max_health)))
-        pygame.draw.rect(screen, (0,255,0), Rect(self.position[0]+3,self.position[1]+GRID_SIZE-4, width, 4), 0)
+        pygame.draw.rect(screen, (0,255,0), Rect(self.position[0]+3,self.position[1]+GRID_SIZE-8, width, 4), 0)
+        if width < 26:
+            pygame.draw.rect(screen, (255,0,0), Rect(self.position[0]+3+width,self.position[1]+GRID_SIZE-8, 26-width, 4), 0)
+        width = max(1,int(round((26*self.unit.mana)/self.unit.max_mana)))
+        pygame.draw.rect(screen, (0,0,255), Rect(self.position[0]+3,self.position[1]+GRID_SIZE-4, width, 4), 0)
         if width < 26:
             pygame.draw.rect(screen, (255,0,0), Rect(self.position[0]+3+width,self.position[1]+GRID_SIZE-4, 26-width, 4), 0)
         if self.outdmg is not None:
@@ -397,7 +404,7 @@ class UnitEditor(ScreenObject):
     def handle_mouse(self, pos, rel):
         self.show_hint = pos
         
-ALL_TYPES = [engine.ATTACK, engine.DEFENSE, engine.SPECIAL, engine.TRAIT]
+ALL_TYPES = [engine.BODY, engine.ATTACK, engine.DEFENSE, engine.SPECIAL, engine.TRAIT, engine.ABILITY]
 
 class InventoryEditor(ScreenObject):
     def __init__(self, parent, inventory, position):
@@ -407,7 +414,6 @@ class InventoryEditor(ScreenObject):
         self.expired = False
         self.show_hint = (0,0)
     def render(self, screen):
-        
         for i,t in enumerate(ALL_TYPES):
             comps = []
             for c in self.inventory:
