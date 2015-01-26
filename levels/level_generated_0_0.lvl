@@ -1,5 +1,5 @@
 opponent teams/team_generated_0_0.skv
-drop BasicMixedAttack 90, Zeus 9, SkeletonTrait 1
+drop BasicMixedAttack 90, LuckyMagicalDefense 9, TameBeastTrait 1
 next levels/level_generated_1_0.lvl
 next levels/level_generated_1_1.lvl
 next levels/level_generated_1_2.lvl

@@ -1,6 +1,5 @@
 opponent teams/team_generated_4_0.skv
-drop PhysicalBurstAttack 90, GroupShield 9, GroupBuff 1
+drop PhysicalBurstAttack 90, DoubleHealth 9, HunterTrait 1
 next levels/level_generated_5_0.lvl
 next levels/level_generated_5_1.lvl
-next levels/level_generated_5_2.lvl
 name PhysicalBurstAttack

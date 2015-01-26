@@ -5,6 +5,7 @@ import random
 import engine
 import time
 import sys
+import math
 
 DATADIR = "data"
 IMAGEDIR = "img"
@@ -153,6 +154,7 @@ class GuiUnit(ScreenObject):
         self.xoff = xoff
         self.selected = False
         self.show_hint = None
+        self.ability = None
     def render(self, screen):
         if self.unit.health <= 0:
             img, area = graphman.get_graphic_for_edge(18)
@@ -172,7 +174,7 @@ class GuiUnit(ScreenObject):
             if self.unit.owner.is_human:
                 offsetx = -GRID_SIZE
             for i,c in enumerate(self.unit.components):
-                if engine.components[c].type == engine.SELECTOR and self.unit.owner.is_human:
+                if engine.components[c].type in [engine.SELECTOR, engine.ABILITY_SELECTOR] and self.unit.owner.is_human:
                     continue
                 icon, area = graphman.get_graphic_for_ability(engine.components[c].icon)
                 screen.blit(icon, (100+i*GRID_SIZE+offsetx, 400), area)
@@ -194,6 +196,35 @@ class GuiUnit(ScreenObject):
                             img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
                             hy = 383
                         screen.blit(img, (hx,hy))
+            valid_abilities = self.unit.get_valid_abilities()        
+            for i,a in enumerate(self.unit.abilities):
+                icon, area = graphman.get_graphic_for_ability(a.icon)
+                screen.blit(icon, (132+i*GRID_SIZE+offsetx, 440), area)
+                if a not in valid_abilities:
+                    r = int(round(1/math.sqrt(2)*GRID_SIZE/2))
+                    pygame.draw.circle(screen, (255,0,0), (132+i*GRID_SIZE+offsetx + GRID_SIZE/2,440+GRID_SIZE/2), GRID_SIZE/2, 4)
+                    pygame.draw.line(screen, (255,0,0), (132+i*GRID_SIZE+offsetx + GRID_SIZE/2-r,440+GRID_SIZE/2+r), (132+i*GRID_SIZE+offsetx + GRID_SIZE/2+r,440+GRID_SIZE/2-r), 4)
+                if a == self.ability:
+                    pygame.draw.circle(screen, (0,255,0), (132+i*GRID_SIZE+offsetx + GRID_SIZE/2,440+GRID_SIZE/2), GRID_SIZE/2, 4)
+                if False and self.show_hint:
+                    x,y = self.show_hint
+                    if x > 100+i*GRID_SIZE+offsetx and x < 100 + (i+1)*GRID_SIZE+offsetx and \
+                       y > 400 and y < 400 + GRID_SIZE:
+                        hx = 100
+                        hy = 363
+                        font = pygame.font.Font(None, 16)
+                        img = font.render(engine.components[c].name, True, (0,0,0))
+                        screen.blit(img, (hx,hy))
+                        hy = 373
+                        img = font.render(engine.components[c].description, True, (0,0,0))
+                        if img.get_width() > 400:
+                            desc = engine.components[c].description.split()
+                            img = font.render(' '.join(desc[:len(desc)/2]), True, (0,0,0))
+                            screen.blit(img, (hx,hy))
+                            img = font.render(' '.join(desc[len(desc)/2:]), True, (0,0,0))
+                            hy = 383
+                        screen.blit(img, (hx,hy))
+                        
             for i,b in enumerate(self.unit.buffs):
                 icon, area = graphman.get_graphic_for_ability(b.icon)
                 screen.blit(icon, (300+i*GRID_SIZE, 400), area)
@@ -261,12 +292,24 @@ class GuiUnit(ScreenObject):
         self.indmg = (d + "- %.2f"%(dmg), type)
     def handle_click(self, where, btn):
         x,y = where
+        if y > 11*GRID_SIZE:
+            # HUD hit
+            offsetx = 0
+            if self.unit.owner.is_human:
+                offsetx = -GRID_SIZE
+            valid_abilities = self.unit.get_valid_abilities()
+            for i,a in enumerate(self.unit.abilities):
+                if a in valid_abilities and x > 132 + i* GRID_SIZE + offsetx and x < 132 + (i+1)*GRID_SIZE + offsetx and y > 440 and y < 440 + GRID_SIZE:
+                    self.ability = a
+            return
         if btn == 1:
             self.selected = False
         if x > self.position[0] and x < self.position[0] + GRID_SIZE and y > self.position[1] and y < self.position[1] + GRID_SIZE:
             if btn == 1:
                 self.selected = True
                 self.sourced = True
+                if not self.ability or self.ability not in self.unit.get_valid_abilities():
+                    self.ability = self.unit.get_valid_abilities()[0]
             elif btn == 3:
                 self.targeted = True
     def handle_mouse(self, pos, rel):
@@ -335,10 +378,27 @@ class HumanTargetSelector(engine.AttackHandler,engine.AHandlerComponent):
             return atk
         atk.target = self.storage.target
         return atk
+        
+
+@engine.component
+class HumanAbilitySelector(engine.AbilityHandler,engine.AbilityHandlerComponent):
+    name = "HumanAbilitySelector"
+    description = "Your choice"
+    type = engine.ABILITY_SELECTOR
+    icon = 222
+    def __init__(self, storage):
+        self.priority = 0
+        self.storage = storage
+    def __call__(self, ability, valid_abilities, unit, enemy_units):
+        return self.storage.ability
 
 class TargetStorage(object):
     def __init__(self):
         self.target = None
+        
+class AbilityStorage(object):
+    def __init__(self):
+        self.ability = None
         
 class UnitEditor(ScreenObject):
     def __init__(self, parent, unit, position):
@@ -554,7 +614,7 @@ class Drop(ScreenObject):
         self.show_hint = pos
         
 class GuiGame(Scene):
-    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage(), lvl=None, past=False):
+    def __init__(self, guihandler, players, human_players=[0], target_storage=TargetStorage(), ability_storage=AbilityStorage(), lvl=None, past=False):
         self.guihandler = guihandler
         self.players = players
         self.guihandler.objects.append(Background())
@@ -562,6 +622,7 @@ class GuiGame(Scene):
         self.last_turn = time.time()
         self.source = None
         self.target_storage = target_storage
+        self.ability_storage = ability_storage
         self.current_player = 0
         self.human_players = human_players
         self.end_reached = False
@@ -576,6 +637,7 @@ class GuiGame(Scene):
                 obj.targeted = False
             if obj.sourced and obj.unit.owner == self.players[self.current_player]:
                 self.source = obj.unit
+                self.ability_storage.ability = obj.ability
                 obj.sourced = False
         if (time.time() - self.last_turn) > speed and not self.game_ended():
             self.last_turn = time.time()
@@ -641,7 +703,7 @@ class GuiGame(Scene):
                 enemy_units.extend(p.units)
         turndone = True
         if self.current_player in self.human_players:
-            if self.source and self.target_storage.target and self.target_storage.target.health > 0:
+            if self.source and self.target_storage.target and self.target_storage.target.health > 0 and self.ability_storage.ability:
                  self.players[self.current_player].make_attack(self.source, enemy_units)
                  self.target_storage.target = None
             else:
@@ -726,7 +788,7 @@ class Player:
         else:
             
             self.available_levels = [Level("levels/level_generated_0_0.lvl")]
-            self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense'],
+            self.team = [["unit1", 3, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicMagicalDefense', 'Smash'],
                          ["unit2", 8, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicMagicalDefense'],
                          ["unit3", 11, 'RandomTargetSelector', 'BasicMagicalAttack', 'BasicPhysicalDefense'],
                          ["unit4", 2, 'RandomTargetSelector', 'BasicPhysicalAttack', 'BasicPhysicalDefense'],
@@ -777,11 +839,14 @@ class LevelSelector(Scene):
         players = []
         human_players = [0]
         target_storage = TargetStorage()
+        ability_storage = AbilityStorage()
         def gui_component_maker(i):
             def make_gui_component(name):
                 c = engine.components[name]
                 if c.type == engine.SELECTOR and i in human_players:
                     return HumanTargetSelector(target_storage)
+                elif c.type == engine.ABILITY_SELECTOR and i in human_players:
+                    return HumanAbilitySelector(ability_storage)
                 return c()
             return make_gui_component
         for i,f in enumerate(files):
@@ -790,7 +855,7 @@ class LevelSelector(Scene):
             else:
                 players.append(engine.make_player(f, "Opponent"))
         self.guihandler.clear()
-        scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, lvl=lvl, past=past)
+        scene = GuiGame(self.guihandler, players, human_players=human_players, target_storage=target_storage, ability_storage=ability_storage, lvl=lvl, past=past)
         scene.start()
         
     def do_build_unit(self, arg):

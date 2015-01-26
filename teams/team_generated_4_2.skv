@@ -1,5 +1,5 @@
-unit0 21 RoundRobinTargetSelector PhysicalBurstAttack EnergyShieldDefense DoubleHealth
-unit1 11 RoundRobinTargetSelector BasicPureAttack BasicPhysicalDefense Curse
-unit2 26 WeakestTargetSelector LifeLeechPhysicalAttack LuckyMagicalDefense DoubleHealth
-unit3 21 RoundRobinTargetSelector BasicPureAttack EnergyShieldDefense DoubleAttack
-unit4 6 WeakestTargetSelector ImprovingPhysicalAttack BasicMagicalDefense Purifier
+unit0 6 RoundRobinTargetSelector PhysicalBurstAttack BasicPhysicalDefense DoubleHealth
+unit1 20 WeakestTargetSelector BasicPhysicalAttack GroupShield Zeus
+unit2 10 RandomTargetSelector PhysicalBurstAttack EnergyShieldDefense Zeus
+unit3 6 WeakestTargetSelector HolySmiteAttack BasicMagicalDefense Zeus
+unit4 27 WeakestTargetSelector BasicMixedAttack EnergyShieldDefense Zeus

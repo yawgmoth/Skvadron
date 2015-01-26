@@ -1,8 +1,7 @@
 opponent teams/team_generated_1_1.skv
-drop Zeus 90, TameBeastTrait 9, ImprovingPhysicalAttack 1
+drop BasicPureAttack 90, TameBeastTrait 9, ImprovingPhysicalAttack 1
 next levels/level_generated_2_0.lvl
 next levels/level_generated_2_1.lvl
 next levels/level_generated_2_2.lvl
 next levels/level_generated_2_3.lvl
-next levels/level_generated_2_4.lvl
-name Zeus
+name BasicPureAttack

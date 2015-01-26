@@ -1,5 +1,5 @@
-unit0 20 RoundRobinTargetSelector BasicMagicalAttack SuperHealingDefense DoubleDamage
-unit1 9 WeakestTargetSelector BasicPhysicalAttack BasicPhysicalDefense Purifier
-unit2 26 WeakestTargetSelector BasicPureAttack SuperHealingDefense Thorns
-unit3 9 WeakestTargetSelector BasicMixedAttack SuperHealingDefense Thorns
-unit4 29 RandomTargetSelector BasicMagicalAttack BasicMagicalDefense Thorns
+unit0 6 RandomTargetSelector ImprovingPhysicalAttack BasicMagicalDefense Zeus
+unit1 6 RandomTargetSelector HolySmiteAttack BasicPhysicalDefense Zeus
+unit2 19 RoundRobinTargetSelector BasicPhysicalAttack LuckyMagicalDefense Thorns
+unit3 23 RoundRobinTargetSelector BasicPureAttack LuckyMagicalDefense Thorns
+unit4 15 WeakestTargetSelector BasicMagicalAttack BasicPhysicalDefense Zeus

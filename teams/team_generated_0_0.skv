@@ -1,5 +1,5 @@
-unit0 18 RandomTargetSelector BasicMixedAttack BasicPhysicalDefense Zeus
-unit1 8 WeakestTargetSelector BasicPureAttack BasicMagicalDefense
-unit2 27 RandomTargetSelector BasicPhysicalAttack BasicMagicalDefense
-unit3 26 RandomTargetSelector BasicMagicalAttack BasicPhysicalDefense
-unit4 7 RandomTargetSelector BasicMixedAttack LuckyMagicalDefense
+unit0 12 RandomTargetSelector BasicMixedAttack BasicMagicalDefense Zeus
+unit1 23 RandomTargetSelector BasicMagicalAttack LuckyMagicalDefense
+unit2 17 WeakestTargetSelector BasicPhysicalAttack BasicMagicalDefense
+unit3 1 RandomTargetSelector BasicMixedAttack BasicMagicalDefense
+unit4 27 RoundRobinTargetSelector BasicMagicalAttack BasicPhysicalDefense

@@ -1,6 +1,6 @@
 opponent teams/team_generated_3_1.skv
-drop Purifier 90, PhysicalBurstAttack 9, GroupShield 1
+drop ImprovingPhysicalAttack 90, EnergyShieldDefense 9, DoubleHealth 1
 next levels/level_generated_4_0.lvl
 next levels/level_generated_4_1.lvl
 next levels/level_generated_4_2.lvl
-name Purifier
+name ImprovingPhysicalAttack

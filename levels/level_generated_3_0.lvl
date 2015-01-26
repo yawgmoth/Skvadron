@@ -1,6 +1,6 @@
 opponent teams/team_generated_3_0.skv
-drop ImprovingPhysicalAttack 90, PhysicalBurstAttack 9, GroupShield 1
+drop HolySmiteAttack 90, PhysicalBurstAttack 9, DoubleHealth 1
 next levels/level_generated_4_0.lvl
 next levels/level_generated_4_1.lvl
 next levels/level_generated_4_2.lvl
-name ImprovingPhysicalAttack
+name HolySmiteAttack

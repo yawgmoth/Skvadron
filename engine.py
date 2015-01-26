@@ -137,11 +137,14 @@ class Unit(object):
             h(self, enemy_units)
     def has_trait(self, trait):
         return trait in self.traits
-    def get_attack(self, targets):
+    def get_valid_abilities(self):
         valid_abilities =[]
         for a in self.abilities:
             if a.get_mana_cost() < self.mana:
                 valid_abilities.append(a)
+        return valid_abilities
+    def get_attack(self, targets):
+        valid_abilities = self.get_valid_abilities()
         ability = None
         for a in self.ability_handlers:
             ability = a(ability, valid_abilities, self, targets)
@@ -393,7 +396,7 @@ class ImprovingPhysicalAttack(Ability, AbilityComponent):
         unit.add_buff(ImprovingPhysicalAttackBuff(self.dmg - dmg))
         if self.dmg >= 128:
             self.dmg = 2.0
-            atk.source.add_buff(ImprovingPhysicalAttackBuff(2.0-self.dmg))
+            unit.add_buff(ImprovingPhysicalAttackBuff(2.0-self.dmg))
         return [Attack(unit, damage=dmg, type=PHYSICAL)]
         
 @component
@@ -404,6 +407,17 @@ class BasicPureAttack(Ability, AbilityComponent):
     icon = 372
     def get_attacks(self, unit, enemy_units):
         return [Attack(unit, damage=8.0, type=PURE)]
+        
+@component
+class SmashAbility(Ability, AbilityComponent):
+    name = "Smash"
+    description = "Does 20 physical damage"
+    type = ATTACK
+    icon = 360
+    def get_attacks(self, unit, enemy_units):
+        return [Attack(unit, damage=20.0, type=PHYSICAL)]
+    def get_mana_cost(self):
+        return 30.0
         
 @component
 class HolySmiteAttack(Ability, AttackHandler, Component):

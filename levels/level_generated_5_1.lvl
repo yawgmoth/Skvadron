@@ -1,4 +1,7 @@
 opponent teams/team_generated_5_1.skv
-drop Curse 90, GroupBuff 9, EnergyContainer 1
+drop DoubleHealth 90, SuperHealingDefense 9, DoubleAttack 1
 next levels/level_generated_6_0.lvl
-name Curse
+next levels/level_generated_6_1.lvl
+next levels/level_generated_6_2.lvl
+next levels/level_generated_6_3.lvl
+name DoubleHealth

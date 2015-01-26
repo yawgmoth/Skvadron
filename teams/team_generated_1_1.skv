@@ -1,5 +1,5 @@
-unit0 17 WeakestTargetSelector BasicPhysicalAttack BasicMagicalDefense Zeus
-unit1 25 RoundRobinTargetSelector BasicPureAttack BasicPhysicalDefense Thorns
-unit2 10 WeakestTargetSelector LifeLeechPhysicalAttack BasicMagicalDefense Zeus
-unit3 26 RoundRobinTargetSelector BasicPhysicalAttack SuperHealingDefense Zeus
-unit4 28 RandomTargetSelector BasicMixedAttack LuckyMagicalDefense Zeus
+unit0 27 WeakestTargetSelector LifeLeechPhysicalAttack BasicMagicalDefense Thorns
+unit1 29 WeakestTargetSelector BasicPhysicalAttack LuckyMagicalDefense Zeus
+unit2 6 RoundRobinTargetSelector BasicPureAttack BasicMagicalDefense Zeus
+unit3 24 WeakestTargetSelector BasicMixedAttack BasicPhysicalDefense Zeus
+unit4 20 RandomTargetSelector BasicPureAttack BasicPhysicalDefense Zeus
